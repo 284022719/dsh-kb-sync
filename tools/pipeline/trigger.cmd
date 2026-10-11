@@ -24,21 +24,30 @@ setlocal enableextensions
 set "PIPE_DIR=%~dp0"
 if "%PIPE_DIR:~-1%"=="\" set "PIPE_DIR=%PIPE_DIR:~0,-1%"
 set "HINT=%PIPE_DIR%\trigger-source.json"
+REM Fallback pointer: the plugin writes its hint inside the profile snapshot too,
+REM so this file works even before the plugin has managed to write the source-tree
+REM copy (or if that copy was deleted). Nothing here guesses a port.
+set "HINT2=%USERPROFILE%\.dsh\profiles\desktop\node_modules\dsh-kb-sync\tools\pipeline\trigger-source.json"
 set "LOG=%PIPE_DIR%\trigger.log"
 
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format s"') do set "STAMP=%%i"
 echo [%STAMP%] trigger start (pipe=%PIPE_DIR%) >> "%LOG%"
 
-if not exist "%HINT%" (
-  echo [%STAMP%] no trigger-source.json - the plugin has not loaded since phase 3 >> "%LOG%"
-  echo [%STAMP%] start the DSH app once: the plugin writes it at load time >> "%LOG%"
+set "HINT_USE=%HINT%"
+if not exist "%HINT_USE%" set "HINT_USE=%HINT2%"
+if not exist "%HINT_USE%" (
+  echo [%STAMP%] no trigger-source.json in either place: >> "%LOG%"
+  echo [%STAMP%]   %HINT% >> "%LOG%"
+  echo [%STAMP%]   %HINT2% >> "%LOG%"
+  echo [%STAMP%] start the DSH app once - the plugin writes it at load time >> "%LOG%"
   exit /b 2
 )
+echo [%STAMP%] using hint %HINT_USE% >> "%LOG%"
 
 set "PIPE_REAL="
-for /f "usebackq delims=" %%d in (`powershell -NoProfile -Command "try{(Get-Content -Raw -Encoding UTF8 '%HINT%' | ConvertFrom-Json).pipelineDir}catch{}"`) do set "PIPE_REAL=%%d"
+for /f "usebackq delims=" %%d in (`powershell -NoProfile -Command "try{(Get-Content -Raw -Encoding UTF8 '%HINT_USE%' | ConvertFrom-Json).pipelineDir}catch{}"`) do set "PIPE_REAL=%%d"
 if not defined PIPE_REAL (
-  echo [%STAMP%] trigger-source.json has no pipelineDir >> "%LOG%"
+  echo [%STAMP%] hint has no pipelineDir: %HINT_USE% >> "%LOG%"
   exit /b 2
 )
 set "TRIGGER=%PIPE_REAL%\trigger.json"
