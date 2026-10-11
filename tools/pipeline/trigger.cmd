@@ -24,40 +24,37 @@ setlocal enableextensions
 set "PIPE_DIR=%~dp0"
 if "%PIPE_DIR:~-1%"=="\" set "PIPE_DIR=%PIPE_DIR:~0,-1%"
 set "HINT=%PIPE_DIR%\trigger-source.json"
-REM Fallback pointer: the plugin writes its hint inside the profile snapshot too,
-REM so this file works even before the plugin has managed to write the source-tree
-REM copy (or if that copy was deleted). Nothing here guesses a port.
+REM Two candidate pointers: the plugin writes its hint inside the profile snapshot,
+REM and (when installed there) into this source tree as well. Either copy can be
+REM stale - a throwaway instance with a temp data dir overwrites the source one -
+REM so the block below only trusts a hint whose pipelineDir really contains a
+REM trigger.json. Nothing here guesses a port.
 set "HINT2=%USERPROFILE%\.dsh\profiles\desktop\node_modules\dsh-kb-sync\tools\pipeline\trigger-source.json"
 set "LOG=%PIPE_DIR%\trigger.log"
 
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format s"') do set "STAMP=%%i"
 echo [%STAMP%] trigger start (pipe=%PIPE_DIR%) >> "%LOG%"
 
-set "HINT_USE=%HINT%"
-if not exist "%HINT_USE%" set "HINT_USE=%HINT2%"
-if not exist "%HINT_USE%" (
-  echo [%STAMP%] no trigger-source.json in either place: >> "%LOG%"
-  echo [%STAMP%]   %HINT% >> "%LOG%"
-  echo [%STAMP%]   %HINT2% >> "%LOG%"
-  echo [%STAMP%] start the DSH app once - the plugin writes it at load time >> "%LOG%"
-  exit /b 2
-)
-echo [%STAMP%] using hint %HINT_USE% >> "%LOG%"
-
-set "PIPE_REAL="
-for /f "usebackq delims=" %%d in (`powershell -NoProfile -Command "try{(Get-Content -Raw -Encoding UTF8 '%HINT_USE%' | ConvertFrom-Json).pipelineDir}catch{}"`) do set "PIPE_REAL=%%d"
-if not defined PIPE_REAL (
-  echo [%STAMP%] hint has no pipelineDir: %HINT_USE% >> "%LOG%"
-  exit /b 2
-)
-set "TRIGGER=%PIPE_REAL%\trigger.json"
-
-REM ---- one PowerShell block does the waiting, the POST and the reporting ----
+REM ---- one PowerShell block: pick a usable hint, wait for the host, POST, report ----
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$ErrorActionPreference='Continue';" ^
-  "$trigger='%TRIGGER%';" ^
-  "if (-not (Test-Path $trigger)) { Write-Output 'plugin has not written a trigger file yet - run the chain once from the control page'; exit 2 }" ^
-  "$t = Get-Content -Raw -Encoding UTF8 $trigger | ConvertFrom-Json;" ^
+  "$hints = @('%HINT%','%HINT2%');" ^
+  "$picked = $null;" ^
+  "foreach ($h in $hints) {" ^
+  "  if (-not (Test-Path $h)) { continue }" ^
+  "  try { $c = Get-Content -Raw -Encoding UTF8 $h | ConvertFrom-Json } catch { continue }" ^
+  "  if (-not $c.pipelineDir) { continue }" ^
+  "  $tg = Join-Path $c.pipelineDir 'trigger.json';" ^
+  "  if (Test-Path $tg) { $picked = @{ hint = $h; trigger = $tg }; break }" ^
+  "}" ^
+  "if ($null -eq $picked) {" ^
+  "  Write-Output 'no usable trigger hint: no candidate points at a directory containing trigger.json';" ^
+  "  Write-Output ('  tried: ' + ($hints -join ' , '));" ^
+  "  Write-Output 'start the DSH app once, then run the chain from the control page';" ^
+  "  exit 2" ^
+  "}" ^
+  "Write-Output ('hint=' + $picked.hint);" ^
+  "$t = Get-Content -Raw -Encoding UTF8 $picked.trigger | ConvertFrom-Json;" ^
   "$status = ($t.url -replace '/pipeline$','/status');" ^
   "$up = $false;" ^
   "for ($i = 0; $i -lt 60; $i++) {" ^
