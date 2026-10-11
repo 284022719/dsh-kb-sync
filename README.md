@@ -4,7 +4,10 @@
 
 典型的流水线是「网页端对话历史 → 本地知识库」，但插件本身不关心你同步什么。
 
-> **定位：只做编排。** 抓取、鉴权、出网全部留在**你已经跑通的那个脚本**里；插件自身**不读凭据、不出网、不注入提示词**（下面有实测的权限清单）。
+> **定位：一个插件，两半能力。**
+> **① 自己拉取**：用你存在 DSH 凭据服务里的网页端 `userToken` 调 chat.deepseek.com，把对话规范化落到本地知识库，并在插件内检索 —— 这一半**读凭据值、会出网**（见下方能力披露，`dsh-trust-check` 判为**红线**）。
+> **② 编排**：起你已有的同步/体检命令、读状态与日志 —— 这一半不读凭据、不出网。
+> 两半都不注入提示词、都不改核心 bundle、都没有安装脚本。
 
 ![dsh-kb-sync 用法与边界：浏览器 → 插件路由 → 你的同步命令 → 状态文件与你的产物](docs/architecture.svg)
 
@@ -15,7 +18,9 @@
 | | 说明 |
 |---|---|
 | ✅ 做 | 用 DSH 的 `subprocess` 起你配置的命令；读状态文件与日志展示进度；跑你指定的完整性体检命令；全部通过一个本地控制页操作 |
-| ❌ 不做 | 不读凭据文件的内容（只 `stat` 修改时间）；不连任何网络；不使用 DSH `credentials` 服务；不注册提示词段落；不改核心 bundle；无安装脚本、无运行依赖 |
+| ✅ 做（拉取半） | 用 DSH 凭据服务里的 `userToken` 调 chat.deepseek.com：拉会话列表 → 只取新增/续聊的线程（`chat_session.current_message_id` 权威定位末端）→ 规范化成 `conversations/*.md` + `conversations.jsonl` + `catalog.json` → 插件内检索 |
+| ✅ 做（编排半） | 用 DSH 的 `subprocess` 起你配置的命令；读状态文件与日志展示进度；跑你指定的完整性体检命令 |
+| ❌ 不做 | 不把 token 写进任何文件/日志/响应（只进凭据服务）；不访问 chat.deepseek.com 之外的任何地址；不读凭据文件（那个会过期的 `.token`）的正文、只 `stat` 它的修改时间；不注册提示词段落；不改核心 bundle；无安装脚本、无运行依赖 |
 
 ## 适配你的流水线
 
@@ -111,28 +116,32 @@ npx dsh-trust-check --dir /path/to/dsh-kb-sync --exit-code
 ```
 
 ```
-1 plugin(s) · 0 red · 0 accepted · 1 review · 0 expected · 0 clear
+1 plugin(s) · 1 red · 0 accepted · 0 review · 0 expected · 0 clear
 
-dsh-kb-sync 0.1.0 — review          (退出码 1 = 需确认)
-  No hard red lines; if capabilities match why you installed it, mark as expected in Settings.
+dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
+  Stop by default; confirm the risk in Settings if you still want to keep it.
   why be careful:
+    · Detected in code: reads credential values and has network access
+    · May touch secrets or sensitive env vars
     · Execute system commands
-    · Access the network
-    · Read local files
-  capabilities: shell, fs-read, network (same-origin), env
+  capabilities: shell, fs-write, fs-read, network (outbound), credentials, env
   destinations (literal):
-    … + 1 allowlisted/loopback destination(s)
+    … + 2 allowlisted/loopback destination(s)
+  secret touches:
+    read: creds.resolve(
   source: unpinned | git+https://github.com/<owner>/dsh-kb-sync.git
-  evidence: 21 hit(s)
+  evidence: 40 hit(s)
 ```
 
-怎么读这份报告：
+怎么读这份报告（**这次是真有红线，别跳过**）：
 
-- `shell` / `fs-read` 是**设计使然**（起你配的命令、读状态与日志）。
-- `network (same-origin)` 来自**控制页在浏览器里**的同源 `fetch`；host 半部（`lib/index.js`）没有任何 `fetch`/socket 调用，插件自己不出网。
-- `env` 来自一个可选的根目录环境变量。
-- **0 红线**：没有「读凭据值 + 出网」、没有明文 `http://` 外连、没有字面量 IP、没有 override `@deepseek-ai/*` 核心 bundle、没有安装脚本。
-- 未检出不等于安全：静态扫描看不到运行时行为。逐条核对（含五条红线的对照与扫描器局限）见 [`docs/CAPABILITY-DISCLOSURE.md`](docs/CAPABILITY-DISCLOSURE.md)。
+- **红线：读凭据值 + 有网络** —— 这是"自己拉取"那一半的必然结果：`credentials.resolve('DEEPSEEK_WEB_TOKEN')` 取出 token，再用 `fetch` 发给 chat.deepseek.com。
+  这条无法通过改代码消除（除非不做拉取）；能做的只有**约束范围**：token 只进 DSH 凭据服务、只在这一次请求里用、永不写进文件/日志/响应；出网目标只有 chat.deepseek.com 一个域名。
+- `fs-write`：写知识库（`conversations/*.md`、`conversations.jsonl`、`catalog.json`），全部落在配置的知识库目录内，越界即拒（有单测）。
+- `network (outbound)`：命中来自 `lib/deepseek.js` 里那两个接口调用；外加控制页在浏览器里的同源 `fetch`。
+- `credentials` / `env`：前者是上面那条红线；后者是可选的根目录环境变量。
+- 按该工具的规则，**红线默认应挡住**；你要继续用就得在 **设置 → 插件体检** 里对该插件点"确认风险"（指纹随代码变化会失效，需要重新确认）。
+- 未检出不等于安全：静态扫描看不到运行时行为。逐条核对与局限见 [`docs/CAPABILITY-DISCLOSURE.md`](docs/CAPABILITY-DISCLOSURE.md)。
 
 ## 已知限制
 
@@ -141,6 +150,10 @@ dsh-kb-sync 0.1.0 — review          (退出码 1 = 需确认)
 - 状态是轮询（运行中 3 秒一次），不是推送。
 - 界面文案目前是中文。
 - 已在 Windows + DSH 0.2.0-rc.2 上实测：控制页、`/status`、`/doctor`、越界与跨站拒绝；POSIX 执行分支已写但未实测；`/run` 的**成功路径**未在真机点过（它会真的跑一次同步，可能耗时并消耗你自己的额度）。
+- **拉取只做增量**：列表接口的游标在服务端失效（无论传什么游标都只回最新 100 条），所以第一版保证的是「往后每天长」；**全量历史回填**（走官方导出 zip）还没做。
+- `userToken` 会过期（数小时~数天）：过期后拉取报错，重新粘一次即可；它是你的账号凭据，不要外传。
+- **与已有脚本共用知识库目录时注意**：两边都会重写 `catalog.json` / `conversations.jsonl`（各自读-改-写），建议二选一，或把 `outDir` 指到别的目录避免互相覆盖。
+- 检索是**直接扫 JSONL、不建索引**（几千会话够快）；会话量再涨一个量级要换方案。
 
 ## 开发
 
@@ -150,7 +163,7 @@ node --test        # 14 个用例：路由、同源守卫、越界拒绝、argv 
 
 ## English summary
 
-A host-only DeepSeek Harness plugin that orchestrates a **user-owned** sync pipeline from a same-origin control page: run it, watch its status and logs, and run an integrity check. It holds **no credentials and opens no network connection of its own** — both stay inside the pipeline it spawns. Static capability disclosure (`dsh-trust-check`): 0 red lines; capabilities `shell` + `fs-read` + same-origin `network` + `env`. Every path and command is configurable; the `sync/sync-daily.*`, `sync/logs/`, `LAST-SYNC.txt`, `.token` and `knowledge-base/tools/kb.mjs` names are only defaults.
+A DeepSeek Harness plugin with two halves. **Pull**: it reads the DeepSeek web `userToken` from the DSH credential service, calls chat.deepseek.com, and normalizes conversations into a local knowledge base (markdown + JSONL + catalog) with in-plugin search. **Orchestrate**: it runs and monitors a sync/integrity command you already own. Static capability disclosure (`dsh-trust-check`): **1 red line** — "reads credential values and has network access", which the pull half cannot avoid; the token never leaves the credential service for any file, log, or response, and the only outbound host is chat.deepseek.com.
 
 ## License
 

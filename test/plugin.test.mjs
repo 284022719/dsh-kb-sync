@@ -7,7 +7,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync, utimesSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, utimesSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -29,7 +29,7 @@ function makeRoot({ tokenAgeDays = 3 } = {}) {
   writeFileSync(token, 'x'.repeat(64))
   const when = new Date(Date.now() - tokenAgeDays * 86_400_000)
   utimesSync(token, when, when)
-  const kbDir = join(root, '..', 'knowledge-base')
+  const kbDir = join(root, 'kb')
   mkdirSync(join(kbDir, 'tools'), { recursive: true })
   writeFileSync(join(kbDir, 'tools', 'kb.mjs'), '// fixture\n')
   return { root, kbDir }
@@ -65,8 +65,28 @@ function makeSubprocess({ exitCode = 0, stdout = 'sync worked\n', manual = false
   return { subprocess, specs, release }
 }
 
+/** A credential-service stub: one ref, in memory, never exposes values in assertions. */
+function makeCredentials(initial = {}) {
+  const store = new Map(Object.entries(initial))
+  return {
+    store,
+    async resolve(ref) {
+      return store.has(ref) ? { value: store.get(ref) } : undefined
+    },
+    async describe(ref) {
+      return { configured: store.has(ref), writable: true }
+    },
+    async set(ref, value) {
+      store.set(ref, value)
+    },
+    async unset(ref) {
+      store.delete(ref)
+    },
+  }
+}
+
 /** Boot the plugin against a mock host and return a request helper. */
-function boot({ root, kbDir, subprocess, config } = {}) {
+function boot({ root, kbDir, subprocess, credentials, fetchImpl, config } = {}) {
   const routes = []
   const disposers = []
   const ctx = {
@@ -81,6 +101,7 @@ function boot({ root, kbDir, subprocess, config } = {}) {
         }
       }
       if (key === 'subprocess') return subprocess
+      if (key === 'credentials') return credentials
       return undefined
     },
     effect(fn) {
@@ -89,7 +110,7 @@ function boot({ root, kbDir, subprocess, config } = {}) {
       return dispose
     },
   }
-  apply(ctx, config ?? { root, kbDir, nodeBin: 'node', configFile: MISSING_CONFIG })
+  apply(ctx, config ?? { root, kbDir, nodeBin: 'node', configFile: MISSING_CONFIG, fetchImpl })
   return {
     routes,
     disposers,
@@ -100,9 +121,10 @@ function boot({ root, kbDir, subprocess, config } = {}) {
 }
 
 /** Drive one request through the plugin's route handler. */
-async function request(host, { method = 'GET', url, headers = {}, guard = true } = {}) {
+async function request(host, { method = 'GET', url, headers = {}, guard = true, body: requestBody = '' } = {}) {
   const route = host.prefixRoute
   assert.ok(route, 'the plugin must register its prefix route')
+  const listeners = new Map()
   const req = {
     method,
     url: url.startsWith('/') ? url : `${PREFIX}${url}`,
@@ -112,8 +134,16 @@ async function request(host, { method = 'GET', url, headers = {}, guard = true }
       ...(guard ? { 'x-dsh-kb-sync': '1' } : {}),
       ...headers,
     },
+    on(event, callback) {
+      listeners.set(event, callback)
+      // The real request streams its body then ends; tests have no socket, so
+      // deliver on registration instead: 'data' is registered before 'end', so
+      // the queued callbacks run in the right order.
+      if (event === 'data' && requestBody !== '') queueMicrotask(() => callback(Buffer.from(requestBody, 'utf8')))
+      if (event === 'end') queueMicrotask(() => callback())
+    },
+    destroy() {},
     resume() {},
-    on() {},
   }
   let body = ''
   let status = 0
@@ -361,4 +391,195 @@ test('registers its route even when the host exposes no effect seam', () => {
   assert.equal(routes.length, 1)
   assert.equal(routes[0].path, PREFIX)
   assert.equal(routes[0].kind, 'prefix')
+})
+
+// ---------------------------------------------------------------------------
+// 网页端拉取 / 凭据 / 检索
+// ---------------------------------------------------------------------------
+
+/** A fake chat.deepseek.com: records calls, serves the two endpoints we use. */
+function makeApi({ sessions = [], history = {} } = {}) {
+  const calls = []
+  const fetchImpl = async (url, init = {}) => {
+    const text = String(url)
+    calls.push({ url: text, headers: init.headers ?? {} })
+    const respond = (payload, status = 200) => ({ status, ok: status < 400, json: async () => payload })
+    if (text.includes('fetch_page')) {
+      return respond({ code: 0, data: { biz_code: 0, biz_data: { chat_sessions: sessions, has_more: false } } })
+    }
+    if (text.includes('history_messages')) {
+      const id = new URL(text).searchParams.get('chat_session_id')
+      const biz = history[id]
+      if (!biz) return respond({ code: 40003, msg: 'not found' }, 404)
+      return respond({ code: 0, data: { biz_code: 0, biz_data: biz } })
+    }
+    return respond({}, 404)
+  }
+  return { fetchImpl, calls }
+}
+
+/** Build one history_messages payload with a real parent chain. */
+function makeHistory({ id, title, turns }) {
+  let parent = null
+  let clock = 1_700_000_000
+  const chat_messages = []
+  for (const turn of turns) {
+    chat_messages.push({
+      message_id: chat_messages.length + 1,
+      parent_id: parent,
+      role: 'USER',
+      inserted_at: (clock += 60),
+      fragments: [{ type: 'REQUEST', content: turn.user }],
+    })
+    parent = chat_messages.length
+    chat_messages.push({
+      message_id: chat_messages.length + 1,
+      parent_id: parent,
+      role: 'ASSISTANT',
+      model: 'deepseek-chat',
+      inserted_at: (clock += 60),
+      fragments: [...(turn.thinking ? [{ type: 'THINK', content: turn.thinking }] : []), { type: 'RESPONSE', content: turn.assistant }],
+    })
+    parent = chat_messages.length
+  }
+  return {
+    chat_session: { id, title, current_message_id: parent, inserted_at: 1_700_000_000, updated_at: clock },
+    chat_messages,
+  }
+}
+
+const TOKEN_VALUE = 'secret-token-value-that-must-never-be-echoed'
+
+test('token routes store and clear the value without echoing it', async () => {
+  const { root, kbDir } = makeRoot()
+  const credentials = makeCredentials()
+  const host = boot({ root, kbDir, credentials })
+
+  const before = await request(host, { url: `${PREFIX}/token` })
+  assert.equal(before.json.configured, false)
+
+  const saved = await request(host, { method: 'POST', url: `${PREFIX}/token`, body: JSON.stringify({ token: TOKEN_VALUE }) })
+  assert.equal(saved.status, 200)
+  assert.equal(saved.json.ok, true)
+  assert.equal(JSON.stringify(saved.json).includes(TOKEN_VALUE), false, 'the value must not come back')
+  assert.equal(credentials.store.get('DEEPSEEK_WEB_TOKEN'), TOKEN_VALUE)
+
+  const after = await request(host, { url: `${PREFIX}/token` })
+  assert.equal(after.json.configured, true)
+  assert.equal(JSON.stringify(after.json).includes(TOKEN_VALUE), false)
+
+  const cleared = await request(host, { method: 'POST', url: `${PREFIX}/token/clear` })
+  assert.equal(cleared.json.ok, true)
+  assert.equal(credentials.store.has('DEEPSEEK_WEB_TOKEN'), false)
+})
+
+test('pull without a token reports no-token instead of failing silently', async () => {
+  const { root, kbDir } = makeRoot()
+  const host = boot({ root, kbDir, credentials: makeCredentials(), fetchImpl: makeApi().fetchImpl })
+  const res = await request(host, { method: 'POST', url: `${PREFIX}/pull` })
+  assert.equal(res.status, 400)
+  assert.equal(res.json.error, 'no-token')
+})
+
+test('pull writes markdown + jsonl + catalog, then skips an unchanged second run', async () => {
+  const { root, kbDir } = makeRoot()
+  const credentials = makeCredentials({ DEEPSEEK_WEB_TOKEN: TOKEN_VALUE })
+  const sessions = [
+    { id: 'aaaaaaaa-1111', title: '拔牙之后能吃什么', updated_at: 1_700_000_300 },
+    { id: 'bbbbbbbb-2222', title: '蛋白粉怎么选', updated_at: 1_700_000_400 },
+  ]
+  const api = makeApi({
+    sessions,
+    history: {
+      'aaaaaaaa-1111': makeHistory({ id: 'aaaaaaaa-1111', title: '拔牙之后能吃什么', turns: [{ user: '拔牙后能吃辣吗', assistant: '建议先别吃。', thinking: '考虑创口' }] }),
+      'bbbbbbbb-2222': makeHistory({ id: 'bbbbbbbb-2222', title: '蛋白粉怎么选', turns: [{ user: '乳清蛋白和植物蛋白怎么选', assistant: '看乳糖耐受。' }] }),
+    },
+  })
+  const host = boot({ root, kbDir, credentials, fetchImpl: api.fetchImpl })
+
+  const first = await request(host, { method: 'POST', url: `${PREFIX}/pull` })
+  assert.equal(first.status, 200)
+  assert.equal(first.json.added, 2)
+  assert.equal(first.json.updated, 0)
+  assert.equal(first.json.listed, 2)
+  assert.equal(JSON.stringify(first.json).includes(TOKEN_VALUE), false)
+  assert.equal(api.calls[0].headers.authorization, `Bearer ${TOKEN_VALUE}`)
+  assert.equal(api.calls[0].headers.origin, 'https://chat.deepseek.com')
+
+  const jsonl = readFileSync(join(kbDir, 'conversations.jsonl'), 'utf8').trim().split('\n')
+  assert.equal(jsonl.length, 2)
+  const row = JSON.parse(jsonl[0])
+  assert.equal(row.id, 'aaaaaaaa-1111')
+  assert.equal(row.messages.length, 2)
+  assert.equal(row.messages[0].role, 'user')
+  assert.equal(row.messages[1].thinking, '考虑创口')
+  assert.match(row.file, /^conversations\/\d{8}-/)
+
+  const catalog = JSON.parse(readFileSync(join(kbDir, 'catalog.json'), 'utf8'))
+  assert.equal(catalog.length, 2)
+  assert.equal(readFileSync(join(kbDir, row.file), 'utf8').includes('拔牙后能吃辣吗'), true)
+
+  const second = await request(host, { method: 'POST', url: `${PREFIX}/pull` })
+  assert.equal(second.json.added, 0)
+  assert.equal(second.json.updated, 0)
+  assert.equal(second.json.skipped, 2)
+  assert.equal(second.json.noChanges, true)
+})
+
+test('a continued thread is re-fetched in place and keeps its filename', async () => {
+  const { root, kbDir } = makeRoot()
+  const credentials = makeCredentials({ DEEPSEEK_WEB_TOKEN: TOKEN_VALUE })
+  const session = { id: 'cccccccc-3333', title: '增重计划', updated_at: 1_700_000_200 }
+  const api = makeApi({ sessions: [session], history: { 'cccccccc-3333': makeHistory({ id: session.id, title: session.title, turns: [{ user: '第一问', assistant: '第一答' }] }) } })
+  const host = boot({ root, kbDir, credentials, fetchImpl: api.fetchImpl })
+
+  await request(host, { method: 'POST', url: `${PREFIX}/pull` })
+  const before = JSON.parse(readFileSync(join(kbDir, 'conversations.jsonl'), 'utf8').trim().split('\n')[0])
+  assert.equal(before.messages.length, 2)
+
+  api.calls.length = 0
+  session.updated_at += 600
+  const api2 = makeApi({ sessions: [session], history: { 'cccccccc-3333': makeHistory({ id: session.id, title: session.title, turns: [{ user: '第一问', assistant: '第一答' }, { user: '第二问', assistant: '第二答' }] }) } })
+  const host2 = boot({ root, kbDir, credentials, fetchImpl: api2.fetchImpl })
+  const res = await request(host2, { method: 'POST', url: `${PREFIX}/pull` })
+  assert.equal(res.json.updated, 1)
+  assert.equal(res.json.added, 0)
+
+  const after = JSON.parse(readFileSync(join(kbDir, 'conversations.jsonl'), 'utf8').trim().split('\n')[0])
+  assert.equal(after.messages.length, 4)
+  assert.equal(after.file, before.file, 'a continued thread keeps its markdown path')
+  assert.equal(JSON.parse(readFileSync(join(kbDir, 'catalog.json'), 'utf8')).length, 1)
+})
+
+test('search finds titles and message text, and can filter to the user voice', async () => {
+  const { root, kbDir } = makeRoot()
+  const credentials = makeCredentials({ DEEPSEEK_WEB_TOKEN: TOKEN_VALUE })
+  const api = makeApi({
+    sessions: [{ id: 'dddddddd-4444', title: '牙齿话题', updated_at: 1_700_000_100 }],
+    history: { 'dddddddd-4444': makeHistory({ id: 'dddddddd-4444', title: '牙齿话题', turns: [{ user: '我昨天拔了智齿', assistant: '止痛药按说明书吃，说明书里有剂量。' }] }) },
+  })
+  const host = boot({ root, kbDir, credentials, fetchImpl: api.fetchImpl })
+  await request(host, { method: 'POST', url: `${PREFIX}/pull` })
+
+  const all = await request(host, { url: `${PREFIX}/search?q=${encodeURIComponent('说明书')}` })
+  assert.equal(all.json.ok, true)
+  assert.equal(all.json.hits.length, 1)
+  assert.equal(all.json.hits[0].matches[0].role, 'assistant')
+
+  const userOnly = await request(host, { url: `${PREFIX}/search?q=${encodeURIComponent('说明书')}&role=user` })
+  assert.equal(userOnly.json.hits.length, 0, 'the assistant line must not match the user-only filter')
+
+  const byTitle = await request(host, { url: `${PREFIX}/search?q=${encodeURIComponent('牙齿')}` })
+  assert.equal(byTitle.json.hits[0].titleHit, true)
+
+  const kb = await request(host, { url: `${PREFIX}/kb` })
+  assert.equal(kb.json.markdown, 1)
+  assert.equal(kb.json.catalog.rows, 1)
+})
+
+test('the knowledge base writer refuses to escape its directory', async () => {
+  const { resolveInside } = await import('../lib/store.js')
+  assert.throws(() => resolveInside('D:\\kb', '..\\evil.md'), /路径越界/)
+  assert.throws(() => resolveInside('D:\\kb', 'C:\\Windows\\evil.md'), /路径越界/)
+  assert.ok(resolveInside('D:\\kb', 'conversations/ok.md').startsWith('D:\\kb'))
 })
