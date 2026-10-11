@@ -1,4 +1,5 @@
-# dsh-kb-sync: orchestrate the sync pipeline the user already owns.
+# dsh-kb-sync: orchestrate the sync pipeline the user already owns, and run its
+# segment 2 in process through the host `llm` service (no dsh headless needed).
 # Inserted by `dsh plugin add` (bundle patch). Configure it from your own
 # profile patch with an id-targeted row, e.g.
 #
@@ -6,6 +7,9 @@
 #     name: 'dsh-kb-sync'
 #     config:
 #       root: 'D:\path\to\pipeline'
+#       # pipelineDir: 'D:\path\to\dsh-kb-sync\tools\pipeline'
+#       # processProvider: 'deepseek-official'
+#       # processModel: 'deepseek-v4-flash'
 #
 - insert:
     - id: dsh-kb-sync

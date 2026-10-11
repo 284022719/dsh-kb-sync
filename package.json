@@ -1,7 +1,7 @@
 {
   "name": "dsh-kb-sync",
   "version": "0.1.0",
-  "description": "DeepSeek Harness plugin: run and monitor any user-owned sync pipeline from a local control page — status, logs, and an integrity check. The plugin itself holds no credentials and makes no network calls; both stay inside the pipeline it spawns.",
+  "description": "DeepSeek Harness plugin: run and monitor a user-owned conversation-sync pipeline from a local control page. Phase 2 also absorbs the pipeline's segment 2: classification, health-fact and finance-candidate extraction run in-process through the host llm service (no extra dependency — one stream, JSON validated before anything lands).",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -9,7 +9,8 @@
     "deepseek",
     "knowledge-base",
     "sync",
-    "orchestration"
+    "orchestration",
+    "llm"
   ],
   "type": "module",
   "main": "./lib/index.js",
@@ -25,6 +26,7 @@
   "files": [
     "lib",
     "docs",
+    "tools/pipeline",
     "cordis.patch.yml",
     "README.md",
     "LICENSE"
@@ -33,7 +35,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test test/plugin.test.mjs"
   },
   "license": "MIT",
   "repository": {

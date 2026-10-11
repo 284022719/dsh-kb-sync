@@ -6,5 +6,15 @@
   "//root": "编排半用：你已有的同步流水线根目录（同步脚本/日志/LAST-SYNC 都从它推）",
   "root": "",
   "tokenRef": "DEEPSEEK_WEB_TOKEN",
-  "tokenOldDays": 21
+  "tokenOldDays": 21,
+
+  "//syncScript": "同步入口；不配就按 root 自动发现 sync/sync-daily.{cmd,ps1,sh}",
+  "//logDir": "日志目录；不配就是 <root>/sync/logs",
+  "//tokenFile": "token 文件（只读 mtime 判年龄，不读内容）",
+  "//lastSyncFile": "状态文件；不配就是 <root>/sync/LAST-SYNC.txt",
+
+  "//pipelineDir": "段 2 用的管线脚本目录（prep-inbox.mjs / apply-extraction.mjs / extract-prompt.md 等）；默认是插件自己的 tools/pipeline",
+  "//processProvider": "段 2 调模型用哪个提供方；不配就取第一个已注册的",
+  "//processModel": "段 2 调模型用哪个模型；不配就取该提供方目录里的第一个",
+  "processMaxTokens": 4096
 }

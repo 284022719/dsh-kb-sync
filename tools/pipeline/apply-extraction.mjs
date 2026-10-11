@@ -1,16 +1,22 @@
-// 应用 headless 的产出：校验 sync\out\ 里的 JSON，落到位，然后由调用方跑构建脚本。
+// 应用「判断」产出：校验 sync\out\ 里的 JSON，落到位，然后由调用方跑构建脚本。
 //
-//   node sync/apply-extraction.mjs
+//   node apply-extraction.mjs            # 校验 + 落盘
+//   node apply-extraction.mjs --dry-run  # 只校验：跑完全部判据、打印将要写什么，不碰任何文件
 //
-// 设计原则：headless 只产出「判断」（JSON）；校验与应用都在这份**不受沙箱限制**的
-// 脚本里做。任何校验不通过都不落盘，并以非零退出码报告，让上层弹窗告警。
+// 设计原则：产出方（旧的 headless、阶段 2 起的宿主 llm）只产出「判断」（JSON）；
+// 校验与应用都在这份**不受沙箱限制**的脚本里做。任何校验不通过都不落盘，并以非零退出码报告。
+//
+// --dry-run 是阶段 2 验收要用的：先看清"会写哪些文件、几条"，再决定是否应用。
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { IMPORT_DIR, INBOX_DIR, OUT_DIR, LOG_DIR, HEALTH_FACTS, FIN_DIR, UPDATE_TOPICS, SPECIALTIES_MAP } from './_paths.mjs';
 
+const DRY = process.argv.includes('--dry-run');
 const WS = IMPORT_DIR;
 const OUT = OUT_DIR;
 const INBOX = INBOX_DIR;
+/** dry-run 时记录"本该写什么"，真跑时记录"写了什么"。 */
+const planned = (label) => { if (DRY) applied.push(`[dry-run] ${label}`); };
 
 const problems = [];   // 硬失败：不落盘、非零退出、上层弹窗告警
 const warnings = [];   // 软问题：跳过个别记录但继续落盘（候选类数据不该因一条坏记录全丢）
@@ -55,8 +61,11 @@ if (!existsSync(topicsFile)) {
     if (illegal.length) problems.push(`非法话题 ${illegal.length} 个：${illegal.slice(0, 5).join(' ')}`);
 
     if (!problems.length) {
-      writeFileSync(UPDATE_TOPICS, JSON.stringify(out, null, 1), 'utf8');
-      applied.push(`归类 ${asg.length} 条 → update-topics.json`);
+      if (DRY) planned(`归类 ${asg.length} 条 → update-topics.json`);
+      else {
+        writeFileSync(UPDATE_TOPICS, JSON.stringify(out, null, 1), 'utf8');
+        applied.push(`归类 ${asg.length} 条 → update-topics.json`);
+      }
     }
   }
 }
@@ -72,18 +81,22 @@ if (existsSync(hfFile)) {
     if (bad) warnings.push(`健康事实有 ${bad} 条缺必填字段（kind/label/evidence/status），已跳过，其余照常落盘`);
     if (good.length) {
       const dir = HEALTH_FACTS;
-      mkdirSync(dir, { recursive: true });
       const dest = join(dir, `manual-${today}.json`);
       // 已存在同一天的则改名，避免覆盖手工补录
       const finalDest = existsSync(dest) ? join(dir, `headless-${today}-${Date.now()}.json`) : dest;
-      writeFileSync(finalDest, JSON.stringify({ ...hf, facts: good }, null, 1), 'utf8');
-      applied.push(`健康事实 ${good.length} 条 → ${finalDest.split('\\').pop()}`);
+      if (DRY) {
+        planned(`健康事实 ${good.length} 条 → ${finalDest.split('\\').pop()}`);
+      } else {
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(finalDest, JSON.stringify({ ...hf, facts: good }, null, 1), 'utf8');
+        applied.push(`健康事实 ${good.length} 条 → ${finalDest.split('\\').pop()}`);
+      }
     } else {
       applied.push('健康事实：本轮无有效条目');
     }
   }
 } else {
-  applied.push('健康事实：headless 未产出该文件');
+  applied.push('健康事实：产出方未提供该文件');
 }
 
 // ---------- 3) 财务候选 → 只进候选区，绝不自动入账 ----------
@@ -100,7 +113,6 @@ if (existsSync(ffFile)) {
     if (bad) warnings.push(`财务候选有 ${bad} 条缺必填字段（topic/label/evidence/status/asOf），已跳过，其余照常落盘`);
     if (good.length) {
       const finData = join(FIN_DIR, 'data');
-      mkdirSync(finData, { recursive: true });
       const jl = join(finData, 'candidates.jsonl');
       const seen = existsSync(jl)
         ? new Set(
@@ -119,17 +131,22 @@ if (existsSync(ffFile)) {
         seen.add(key);
         lines.push(JSON.stringify({ ...c, dedupeKey: key, extractedAt: new Date().toISOString(), batch: ff.batch ?? '' }));
       }
-      if (lines.length) {
-        const prev = existsSync(jl) ? readFileSync(jl, 'utf8') : '';
-        writeFileSync(jl, prev + (prev && !prev.endsWith('\n') ? '\n' : '') + lines.join('\n') + '\n', 'utf8');
+      if (DRY) {
+        planned(`财务候选 ${lines.length} 条 → finance/data/candidates.jsonl${dup ? `（${dup} 条重复会跳过）` : ''}`);
+      } else {
+        if (lines.length) {
+          mkdirSync(finData, { recursive: true });
+          const prev = existsSync(jl) ? readFileSync(jl, 'utf8') : '';
+          writeFileSync(jl, prev + (prev && !prev.endsWith('\n') ? '\n' : '') + lines.join('\n') + '\n', 'utf8');
+        }
+        applied.push(`财务候选 ${lines.length} 条 → finance/data/candidates.jsonl${dup ? `（${dup} 条重复已跳过）` : ''}　⚠️ 待你确认后才入账`);
       }
-      applied.push(`财务候选 ${lines.length} 条 → finance/data/candidates.jsonl${dup ? `（${dup} 条重复已跳过）` : ''}　⚠️ 待你确认后才入账`);
     } else {
       applied.push('财务候选：本轮无（0 条）');
     }
   }
 } else {
-  applied.push('财务候选：headless 未产出该文件');
+  applied.push('财务候选：产出方未提供该文件');
 }
 
 // ---------- 4) 专题建议 → 覆盖层（供 map-specialties.mjs 读取） ----------
@@ -162,13 +179,17 @@ if (existsSync(spFile)) {
       }
       if (ok.length) {
         const overlayPath = SPECIALTIES_MAP;
-        const overlay = existsSync(overlayPath) ? JSON.parse(readFileSync(overlayPath, 'utf8')) : { entries: [] };
-        overlay.entries ??= [];
-        const have = new Set(overlay.entries.map((e) => e.idx));
-        for (const e of ok) if (!have.has(e.idx)) overlay.entries.push({ ...e, addedAt: new Date().toISOString() });
-        overlay.updatedAt = new Date().toISOString();
-        writeFileSync(overlayPath, JSON.stringify(overlay, null, 1), 'utf8');
-        applied.push(`专题建议 ${ok.length} 条 → specialties-map.json`);
+        if (DRY) {
+          planned(`专题建议 ${ok.length} 条 → specialties-map.json`);
+        } else {
+          const overlay = existsSync(overlayPath) ? JSON.parse(readFileSync(overlayPath, 'utf8')) : { entries: [] };
+          overlay.entries ??= [];
+          const have = new Set(overlay.entries.map((e) => e.idx));
+          for (const e of ok) if (!have.has(e.idx)) overlay.entries.push({ ...e, addedAt: new Date().toISOString() });
+          overlay.updatedAt = new Date().toISOString();
+          writeFileSync(overlayPath, JSON.stringify(overlay, null, 1), 'utf8');
+          applied.push(`专题建议 ${ok.length} 条 → specialties-map.json`);
+        }
       }
       const rejected = sugg.length - ok.length;
       if (rejected) applied.push(`专题建议 ${rejected} 条未通过校验，已丢弃`);
@@ -182,16 +203,20 @@ if (existsSync(spFile)) {
 const sumFile = join(OUT, 'summary.md');
 if (existsSync(sumFile)) {
   const dir = LOG_DIR;
-  mkdirSync(dir, { recursive: true });
   const dest = join(dir, `extract-${today}.md`);
-  copyFileSync(sumFile, dest);
-  applied.push(`摘要 → sync/logs/extract-${today}.md`);
+  if (DRY) {
+    planned(`摘要 → sync/logs/extract-${today}.md`);
+  } else {
+    mkdirSync(dir, { recursive: true });
+    copyFileSync(sumFile, dest);
+    applied.push(`摘要 → sync/logs/extract-${today}.md`);
+  }
 } else {
-  applied.push('摘要：headless 未产出');
+  applied.push('摘要：产出方未提供该文件');
 }
 
 // ---------- 报告 ----------
-console.log('应用结果：');
+console.log(DRY ? '校验结果（dry-run，未写任何文件）：' : '应用结果：');
 for (const a of applied) console.log('  ✓ ' + a);
 if (warnings.length) {
   console.log('跳过（不阻塞）：');
@@ -203,4 +228,4 @@ if (problems.length) {
   console.log('\n结论：存在硬问题，归类文件未落盘（其余已尽力应用）。');
   process.exit(2);
 }
-console.log('\n结论：全部校验通过 ✔');
+console.log(DRY ? '\n结论：全部校验通过 ✔（dry-run，未写盘）' : '\n结论：全部校验通过 ✔');

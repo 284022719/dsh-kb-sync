@@ -81,6 +81,11 @@ dsh plugin --profile web add github:<owner>/dsh-kb-sync
     # doctorArgs:   ['doctor']
     # nodeBin: 'node'
     # timeoutMs: 3600000
+    # —— 段 2（阶段 2：进程内调宿主 llm 服务）——
+    # pipelineDir:     '<插件目录>\tools\pipeline'  # 管线脚本目录（默认就推到这里）
+    # processProvider: 'deepseek-official'          # 不配就取第一个已注册提供方
+    # processModel:    'deepseek-v4-flash'          # 不配就取该提供方目录里的第一个模型
+    # processMaxTokens: 4096
 ```
 
 **方式二：插件文件夹里的 `config.json`**（推荐——配置跟着代码走，整包拷走也不丢）
@@ -127,12 +132,25 @@ POSIX 示例（`syncScript` 指向 `.sh` 时用 `/bin/sh` 执行）：
 - **拉取新对话（增量）**：会话列表 → 只取「新增 / 续聊」的线程 → 写 `conversations/*.md` + `conversations.jsonl` + `catalog.json`；续聊就地更新、文件名不变。
 - **全量回填**：走官方导出包（`export_all` → 轮询到就绪 → 下载 zip → 解析 `conversations.json`）。只在第一次需要完整历史时用；已有会话仅在导出内容更多时才更新。服务端生成导出可能要几分钟，所以它在后台跑，页面每 3 秒刷新阶段：`trigger → waiting-export → downloading → parsing → merging → done`。
 
-**③ 检索** —— 关键词搜标题与正文，可勾「只看用户说的话」；每条命中都可点「展开全文」，直接在页面里读那个会话的完整 Markdown（思考过程与联网检索记录都在）。编排区三个按钮仍是：运行已有同步脚本 / 跑知识库体检 / 刷新状态。
+**③ 检索** —— 关键词搜标题与正文，可勾「只看用户说的话」；每条命中都可点「展开全文」，直接在页面里读那个会话的完整 Markdown（思考过程与联网检索记录都在）。
+
+**④ 段 2 判断（阶段 2：进程内调宿主模型）** —— 页面上的两个按钮：
+
+- **只校验（dry-run，不落盘）**：准备输入 → 调宿主 `llm` 服务拿一份 JSON 判断 → 写 `sync/out/` → 跑管线自己的
+  `apply-extraction.mjs` 校验。**默认就是这个模式**，用来先看清"会写哪些文件、各几条"。
+- **跑并落盘 + 重建**：校验通过后落盘，并依次重建知识库（`build-kb` / `build-specialties` / `map-specialties`）
+  与健康档案（`build-health-profile` / `sync-knowledge`）。
+
+为什么值得替换掉 `dsh headless`：不再需要第二个 DSH 运行时、不再需要那份单独的 `.dsh-home` 与凭据副本、
+也不再依赖"工作区只写自己目录内"那套沙箱前提。**模型仍然只做判断、产出仍是先落盘再校验的 JSON** ——
+这条规矩是刻意的：让模型直接改 `health/` 或财务台账，钱的数字悄悄错掉很难发现。
+
+编排区三个按钮仍是：运行已有同步脚本 / 跑知识库体检 / 刷新状态。
 
 | 路由 | 方法 | 作用 |
 |---|---|---|
 | `/__dsh-kb-sync/` | GET | 控制页（单文件 HTML，无外部请求） |
-| `/__dsh-kb-sync/status` | GET | 状态 JSON：路径、凭据文件年龄、进度文件末 8 行、最新日志尾部、拉取/回填进度 |
+| `/__dsh-kb-sync/status` | GET | 状态 JSON：路径、凭据文件年龄、进度文件末 8 行、最新日志尾部、拉取/回填/段 2 进度 |
 | `/__dsh-kb-sync/token` | GET / POST | 查 / 存 userToken（GET 只回「配没配」，**永不回值**） |
 | `/__dsh-kb-sync/token/clear` | POST | 清除已存的 userToken |
 | `/__dsh-kb-sync/pull` | POST | 增量拉取，同步返回本轮摘要 |
@@ -141,6 +159,7 @@ POSIX 示例（`syncScript` 指向 `.sh` 时用 `/bin/sh` 执行）：
 | `/__dsh-kb-sync/search?q=&role=` | GET | 检索；`role=user` 只看用户发言 |
 | `/__dsh-kb-sync/conversation?id=` | GET | 取一个会话的完整 Markdown（超过 400 KB 截断并标注） |
 | `/__dsh-kb-sync/run` | POST | 启动你已有的同步命令；已在运行时返回 409 |
+| `/__dsh-kb-sync/process` | POST | 段 2 判断；默认 dry-run，`{"apply":true}` 才落盘并重建。进行中返回 409 |
 | `/__dsh-kb-sync/doctor` | POST | 运行体检命令，返回 stdout / stderr / 退出码 |
 | `/__dsh-kb-sync/log?name=` | GET | 读日志目录下某个文件的尾部（文件名白名单 + 越界拒绝） |
 

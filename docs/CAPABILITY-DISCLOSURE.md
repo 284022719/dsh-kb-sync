@@ -4,15 +4,21 @@
 > 原则照该工具：**只证"有"，不证"无"**；未检出不等于安全。
 > 本文件把**实现前的设计目标**与**实现后的实测**并排放，方便你自己核对偏差。
 
-## 一、这个插件有明确的两半，能力面完全不同
+## 一、这个插件有明确的三块，能力面完全不同
 
-|  | 编排半（起你已有的命令） | 拉取半（自己读网页端对话） |
-|---|---|---|
-| 代码 | `lib/index.js` 的 `/run`、`/doctor`、`/log` | `lib/deepseek.js` + `lib/index.js` 的 `/token`、`/pull`、`/search` |
-| 读凭据值 | 否 | **是**（`credentials.resolve`） |
-| 出网 | 否 | **是**（只连 `chat.deepseek.com`） |
-| 写文件 | 否 | **是**（只在知识库目录内） |
-| 结论 | 无红线 | **命中红线** |
+|  | 编排半（起你已有的命令） | 拉取半（自己读网页端对话） | 段 2 判断（阶段 2：进程内调模型） |
+|---|---|---|---|
+| 代码 | `lib/index.js` 的 `/run`、`/doctor`、`/log` | `lib/deepseek.js` + `lib/index.js` 的 `/token`、`/pull`、`/search` | `lib/index.js` 的 `/process` + `lib/process.js` + `tools/pipeline/extract-prompt.md` |
+| 读凭据值 | 否 | **是**（`credentials.resolve`） | 否（模型调用走宿主 `llm` 服务，凭据在它手里） |
+| 出网 | 否 | **是**（只连 `chat.deepseek.com`） | **是**（经宿主 `llm` 适配器出网；地址由宿主配置决定，插件不写死域名） |
+| 写文件 | 否 | **是**（只在知识库目录内） | **是**（`sync/out/*`、`health-facts/manual-*.json`、`finance/data/candidates.jsonl`、`specialties-map.json`，全在管线的 `data/import` 里） |
+| 起子进程 | 是（你配的那条命令） | 否 | 是（管线的 `prep-inbox.mjs` / `apply-extraction.mjs` / 重建脚本，经宿主 `subprocess` 缝） |
+| 结论 | 无红线 | **命中红线** | 与拉取半同属"模型 + 网络"，不新增凭据读取 |
+
+> **段 2 的设计边界（刻意保留）**：模型只产出 JSON，**从不直接改档案**。落盘前一定先由
+> `tools/pipeline/apply-extraction.mjs` 校验（归类 idx 集合必须与输入完全一致、话题必须合法、
+> 专题 parent 必须匹配），校验不通过就整批不落盘。财务数据只进候选区，永不自动入账。
+> 页面上默认那个按钮就是 **dry-run**：跑模型 + 跑校验，但不写任何文件。
 
 ## 二、实测扫描输出
 
@@ -77,5 +83,14 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2)
 
 不涉及本插件功能，但同类插件作者踩起来比功能本身费时间：
 
-1. **`file:` 安装是复制快照，不是软链**。改完源码要刷新：直接再 `install_bundle` 会被判 `ambiguous-install`，正确姿势是**先 `remove_bundle` 再 `install_bundle`**；而且移除操作曾让 profile 的加载列表被应用重写（当时掉了 9 个插件），工作区脚本 `fix-dsh-plugins.ps1` 可一键补回。
-2. **保存 profile patch 会热重组配置，但不会换模块**：热重组让 `apply()` 重跑，跑的还是缓存的旧模块；要让新代码生效得重启应用。所以本插件提供"设置文件"这条不依赖 patch 的配置通路。
+1. **`file:` 安装是复制快照，不是软链**（2026-10-12 复核仍成立：装好的 `node_modules\dsh-kb-sync\` 里
+   没有源码里新增的 `tools\pipeline\`、`lib\index.js` 哈希也不同）。改完源码要刷新：
+   直接再 `install_bundle` 会被判 `ambiguous-install`，正确姿势是**先 `remove_bundle` 再 `install_bundle`**；
+   而且移除操作曾让 profile 的加载列表被应用重写（当时掉了 9 个插件），工作区脚本 `fix-dsh-plugins.ps1` 可一键补回。
+2. **保存 profile patch 会热重组配置，但不会换模块**：热重组让 `apply()` 重跑，跑的还是缓存的旧模块；
+   要让新代码生效得重启应用。所以本插件提供"设置文件 / 插件文件夹里的 `config.json`"这两条不依赖 patch 的配置通路。
+3. **应用会重写 profile 的 `cordis.patch.yml`**（2026-10-12 实测：手写进去的 `- id: dsh-kb-sync` 配置块在
+   一次应用重启后不见了，文件从约 12 KB 缩回 670 B）。这不影响功能 —— 那几行本来就只是
+   `resolver` 的备选输入之一，真正生效的是 `<插件>/config.json`（`/status` 的 `configFile.localUsed`
+   会告诉你是哪一份生效）。**别把配置只写在 patch 里。**
+
