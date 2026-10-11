@@ -1,0 +1,12 @@
+# dsh-kb-sync: orchestrate the sync pipeline the user already owns.
+# Inserted by `dsh plugin add` (bundle patch). Configure it from your own
+# profile patch with an id-targeted row, e.g.
+#
+#   - id: dsh-kb-sync
+#     name: 'dsh-kb-sync'
+#     config:
+#       root: 'D:\path\to\pipeline'
+#
+- insert:
+    - id: dsh-kb-sync
+      name: 'dsh-kb-sync'
