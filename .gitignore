@@ -1,6 +1,3 @@
-node_modules/
-*.log
-npm-debug.log*
-.DS_Store
-Thumbs.db
-*.tgz
+# 知识库数据（默认落在插件文件夹内的 data/kb）与本地配置不入库
+data/
+config.json

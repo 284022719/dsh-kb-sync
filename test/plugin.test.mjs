@@ -11,7 +11,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, utimesSync } from 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { apply, originAllowed, resolveSettings, collectStatus } from '../lib/index.js'
+import { apply, originAllowed, resolveSettings, collectStatus, PLUGIN_ROOT } from '../lib/index.js'
 
 const PREFIX = '/__dsh-kb-sync'
 
@@ -110,7 +110,7 @@ function boot({ root, kbDir, subprocess, credentials, fetchImpl, config } = {}) 
       return dispose
     },
   }
-  apply(ctx, config ?? { root, kbDir, nodeBin: 'node', configFile: MISSING_CONFIG, fetchImpl })
+  apply(ctx, config ?? { root, kbDir, outDir: kbDir, nodeBin: 'node', configFile: MISSING_CONFIG, fetchImpl })
   return {
     routes,
     disposers,
@@ -361,6 +361,26 @@ test('the settings file supplies values the loader config omits, and loader conf
   assert.equal(broken.configFileUsed, false)
 })
 
+test('by default the knowledge base lives inside the plugin folder, and its config.json is read', () => {
+  const bare = resolveSettings({ configFile: MISSING_CONFIG, localConfigFile: MISSING_CONFIG })
+  assert.equal(bare.outDir, join(PLUGIN_ROOT, 'data', 'kb'), '未配置时知识库落在插件自己的 data/kb')
+  assert.equal(bare.localConfigUsed, false)
+
+  const { root } = makeRoot()
+  const localFile = join(root, 'plugin-config.json')
+  writeFileSync(localFile, JSON.stringify({ outDir: join(root, 'kb-local'), tokenOldDays: 9 }))
+  const withLocal = resolveSettings({ configFile: MISSING_CONFIG, localConfigFile: localFile })
+  assert.equal(withLocal.outDir, join(root, 'kb-local'))
+  assert.equal(withLocal.tokenOldDays, 9)
+  assert.equal(withLocal.localConfigUsed, true)
+
+  // 用户设置文件比插件自带配置优先
+  const userFile = join(root, 'user-config.json')
+  writeFileSync(userFile, JSON.stringify({ outDir: join(root, 'kb-user') }))
+  const both = resolveSettings({ configFile: userFile, localConfigFile: localFile })
+  assert.equal(both.outDir, join(root, 'kb-user'))
+})
+
 test('collectStatus never reads the token file contents', () => {
   const { root, kbDir } = makeRoot()
   const settings = resolveSettings({ root, kbDir, configFile: MISSING_CONFIG })
@@ -600,9 +620,10 @@ test('GET /conversation returns one conversation as markdown', async () => {
   assert.equal((await request(host, { url: `${PREFIX}/conversation?id=nope` })).status, 404)
   assert.equal((await request(host, { url: `${PREFIX}/conversation` })).status, 404)
 
-  const unconfigured = boot({ config: { configFile: MISSING_CONFIG } })
-  const res = await request(unconfigured, { url: `${PREFIX}/conversation?id=x` })
-  assert.equal(res.status, 400)
+  // 没配置时知识库落在插件自己的 data/kb（空库），未知 id 自然是 404
+  const emptyKb = boot({ config: { configFile: MISSING_CONFIG, localConfigFile: MISSING_CONFIG, outDir: join(root, 'kb-empty') } })
+  const res = await request(emptyKb, { url: `${PREFIX}/conversation?id=x` })
+  assert.equal(res.status, 404)
 })
 
 test('the knowledge base writer refuses to escape its directory', async () => {
@@ -742,7 +763,7 @@ test('backfill walks export_all → poll → download → merge, and is idempote
     return { status: 404, ok: false, json: async () => ({}) }
   }
 
-  const host = boot({ root, kbDir, credentials, fetchImpl, config: { root, kbDir, configFile: MISSING_CONFIG, fetchImpl, exportIntervalMs: 1, exportAttempts: 5 } })
+  const host = boot({ root, kbDir, credentials, fetchImpl, config: { root, kbDir, outDir: kbDir, configFile: MISSING_CONFIG, fetchImpl, exportIntervalMs: 1, exportAttempts: 5 } })
   const started = await request(host, { method: 'POST', url: `${PREFIX}/backfill` })
   assert.equal(started.status, 202)
   assert.equal(started.json.ok, true)

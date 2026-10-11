@@ -1,0 +1,10 @@
+{
+  "//": "可选。把本文件复制成 config.json 放在插件文件夹里，配置就跟代码一起走。",
+  "//优先级": "loader config > 环境变量 > $DSH_HOME/.dsh-kb-sync.json > 本文件 > 内置默认",
+  "//outDir": "知识库输出目录；默认就是插件文件夹内的 data/kb",
+  "outDir": "data/kb",
+  "//root": "编排半用：你已有的同步流水线根目录（同步脚本/日志/LAST-SYNC 都从它推）",
+  "root": "",
+  "tokenRef": "DEEPSEEK_WEB_TOKEN",
+  "tokenOldDays": 21
+}

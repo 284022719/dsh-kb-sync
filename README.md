@@ -22,6 +22,19 @@
 | ✅ 做（编排半） | 用 DSH 的 `subprocess` 起你配置的命令；读状态文件与日志展示进度；跑你指定的完整性体检命令 |
 | ❌ 不做 | 不把 token 写进任何文件/日志/响应（只进凭据服务）；不访问 chat.deepseek.com 之外的任何地址；不读凭据文件（那个会过期的 `.token`）的正文、只 `stat` 它的修改时间；不注册提示词段落；不改核心 bundle；无安装脚本、无运行依赖 |
 
+## 目录结构（一个自包含的文件夹）
+
+```
+dsh-kb-sync/
+├─ lib/                  插件代码：index（路由）/ deepseek（接口）/ export（回填）/ store（落盘）/ page（界面）
+├─ docs/                 能力披露与架构图
+├─ test/                 单测（node --test，25 例）
+├─ tools/                发布脚本（publish.ps1 / publish.cmd）
+├─ config.example.json   配置样例 —— 复制成 config.json 就生效（配置跟着代码走）
+├─ data/kb/              **知识库默认就落在这里**（不入库；可配 outDir 改到别处）
+├─ package.json / cordis.patch.yml / README.md / LICENSE
+```
+
 ## 适配你的流水线
 
 插件对你现有的脚本只有**一个硬要求**：一个可执行的同步命令。其余都是可选的，缺了对应功能自动降级、不会报错崩掉：
@@ -70,16 +83,33 @@ dsh plugin --profile web add github:<owner>/dsh-kb-sync
     # timeoutMs: 3600000
 ```
 
-**方式二：设置文件**（推荐——有些 profile 会在重启时重写自己的 `cordis.patch.yml`，手写的 loader 行会丢；设置文件不会）
+**方式二：插件文件夹里的 `config.json`**（推荐——配置跟着代码走，整包拷走也不丢）
+
+```jsonc
+// <插件目录>/config.json   （可先复制 config.example.json 改名）
+{ "root": "D:\\path\\to\\pipeline", "outDir": "data/kb", "tokenOldDays": 21 }
+```
+
+**方式三：设置文件**（有些 profile 会在重启时重写自己的 `cordis.patch.yml`，手写的 loader 行会丢；设置文件不会）
 
 ```jsonc
 // $DSH_HOME/.dsh-kb-sync.json    （未设 DSH_HOME 时即 ~/.dsh/.dsh-kb-sync.json）
 { "root": "/srv/pipeline", "tokenOldDays": 14 }
 ```
 
-**方式三：环境变量** `DSH_KB_SYNC_ROOT`。
+**方式四：环境变量** `DSH_KB_SYNC_ROOT` / `DSH_KB_SYNC_OUT_DIR`。
 
-**优先级**：loader `config` → 环境变量 → 设置文件 → 内置默认。设置文件缺失或 JSON 坏掉都按空处理（不影响加载），是否读到会在 `/status` 的 `configFile` 字段里报告。
+**优先级**：loader `config` → 环境变量 → 用户设置文件 → **插件文件夹里的 `config.json`** → 内置默认。文件缺失或 JSON 坏掉都按空处理（不影响加载），读到哪些会在 `/status` 的 `configFile` 字段里报告（`used` / `localUsed`）。
+
+### 数据落在哪（自包含）
+
+**默认就是插件文件夹内**：`<插件目录>/data/kb/`（`conversations/*.md` + `conversations.jsonl` + `catalog.json`）。
+所以插件不与别的脚本共用知识库目录、也不会互相覆盖 —— 想复用别人的库才需要显式配 `outDir`。
+
+```jsonc
+// 例：把知识库放到别处（或复用一个已有库）
+{ "outDir": "D:\\dsh\\knowledge-base" }
+```
 
 POSIX 示例（`syncScript` 指向 `.sh` 时用 `/bin/sh` 执行）：
 
@@ -167,7 +197,7 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
 - 已在 Windows + DSH 0.2.0-rc.2 上实测：控制页、`/status`、`/doctor`、越界与跨站拒绝；POSIX 执行分支已写但未实测；`/run` 的**成功路径**未在真机点过（它会真的跑一次同步，可能耗时并消耗你自己的额度）。
 - **拉取有两条路**：日常用**增量**（列表接口游标在服务端失效，最多只回最新 100 条，所以增量只保证「往后每天长」）；要**完整历史**用**全量回填**（官方导出包）。回填的解析器已对着真实导出包实测：2446 条会话全部解析，最后一条是助手回复的占 **2442/2446**（若按时间戳找叶子，会有几百条停在提问上、丢掉最后一条回答——这正是导出包的已知坑）。
 - `userToken` 会过期（数小时~数天）：过期后拉取报错，重新粘一次即可；它是你的账号凭据，不要外传。
-- **与已有脚本共用知识库目录时注意**：两边都会重写 `catalog.json` / `conversations.jsonl`（各自读-改-写），建议二选一，或把 `outDir` 指到别的目录避免互相覆盖。
+- **默认不共用知识库目录**：插件的库在它自己的 `data/kb`。只有你显式把 `outDir` 指到与别的脚本同一个目录，才会出现两边互相重写 `catalog.json` / `conversations.jsonl` 的情况（各自读-改-写）。
 - 检索是**直接扫 JSONL、不建索引**（几千会话够快）；会话量再涨一个量级要换方案。
 
 ## 开发
