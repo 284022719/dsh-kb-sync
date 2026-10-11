@@ -106,6 +106,11 @@ dsh plugin --profile web add github:<owner>/dsh-kb-sync
 
 **优先级**：loader `config` → 环境变量 → 用户设置文件 → **插件文件夹里的 `config.json`** → 内置默认。文件缺失或 JSON 坏掉都按空处理（不影响加载），读到哪些会在 `/status` 的 `configFile` 字段里报告（`used` / `localUsed`）。
 
+> ⚠️ **改完配置要重启应用才生效。** `resolveSettings()` 只在插件**加载时**跑一次，配置缓存
+> 在内存里 —— 改文件后 `/status` 仍会报旧的 `syncScript`（2026-10-12 实测：把 `syncScript`
+> 换成 `trigger.cmd` 后，`/status` 继续显示已退役的 `sync-daily.cmd` 并报 `configured:false`）。
+> 页面上的其它按钮不受影响（它们读的是同一份内存配置），但"运行已有同步脚本"要等重启才切到新入口。
+
 ### 数据落在哪（自包含）
 
 **默认就是插件文件夹内**：`<插件目录>/data/kb/`（`conversations/*.md` + `conversations.jsonl` + `catalog.json`）。
