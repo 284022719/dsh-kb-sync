@@ -43,9 +43,15 @@ dsh plugin --profile web add github:<owner>/dsh-kb-sync
     # timeoutMs: 3600000
 ```
 
-也可以用环境变量 `DSH_KB_SYNC_ROOT` 指定根目录。
+**更稳的做法：设置文件。** 有些 profile 的 `cordis.patch.yml` 会被应用在重启时重写成它自己的权威副本，手写的 loader 行会丢；设置文件不会。
 
-> ⚠️ 有些 profile 的 `cordis.patch.yml` 会被应用在重启时重写成它自己的权威副本，手写的 loader 行可能被抹掉——重启后核对一次。
+```json
+// $DSH_HOME/.dsh-kb-sync.json
+// Windows 默认：C:\Users\<你>\.dsh\.dsh-kb-sync.json
+{ "root": "D:\\path\\to\\pipeline", "tokenOldDays": 21 }
+```
+
+**优先级**：loader `config` → 环境变量 `DSH_KB_SYNC_ROOT` → 设置文件 → 内置默认。设置文件缺失或 JSON 坏掉时按空处理（不影响插件加载），是否读到会在 `/status` 的 `configFile` 字段里报告。
 
 ## 使用
 
@@ -105,7 +111,7 @@ dsh-kb-sync 0.1.0 — review          (退出码 1 = 需确认)
 - 需要宿主提供 `subprocess` 服务；缺失时 `/run`、`/doctor` 报错而非静默失败。
 - 状态为轮询（运行中 3 秒一次），不是推送。
 - 界面文案目前是中文。
-- 只在 Windows 上实测（`cmd.exe /c`）；POSIX 分支已写但未实测。
+- 已在 Windows + DSH 0.2.0-rc.2 真机验证：控制页、`/status`、`/doctor`（详见 [`docs/CAPABILITY-DISCLOSURE.md`](docs/CAPABILITY-DISCLOSURE.md) 第四节）；`/run` 未在真机点过（会真的跑一次同步）；POSIX 分支已写但未实测。
 
 ## 开发
 

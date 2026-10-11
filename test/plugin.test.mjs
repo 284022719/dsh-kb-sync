@@ -15,6 +15,9 @@ import { apply, originAllowed, resolveSettings, collectStatus } from '../lib/ind
 
 const PREFIX = '/__dsh-kb-sync'
 
+/** A settings-file path that never exists, so tests never read the real ~/.dsh one. */
+const MISSING_CONFIG = join(tmpdir(), 'dsh-kb-sync-test-no-such-config.json')
+
 /** Build a fixture pipeline root: sync script, LAST-SYNC, one log, a token file. */
 function makeRoot({ tokenAgeDays = 3 } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'kb-sync-'))
@@ -86,7 +89,7 @@ function boot({ root, kbDir, subprocess, config } = {}) {
       return dispose
     },
   }
-  apply(ctx, config ?? { root, kbDir, nodeBin: 'node' })
+  apply(ctx, config ?? { root, kbDir, nodeBin: 'node', configFile: MISSING_CONFIG })
   return {
     routes,
     disposers,
@@ -176,7 +179,7 @@ test('status reports paths, token age from mtime, last sync and newest log', asy
 })
 
 test('an unconfigured root reports a message instead of failing', async () => {
-  const host = boot({ config: {} })
+  const host = boot({ config: { configFile: MISSING_CONFIG } })
   const { status, json } = await request(host, { url: `${PREFIX}/status` })
   assert.equal(status, 200)
   assert.equal(json.configured, false)
@@ -270,20 +273,42 @@ test('unknown sub-paths 404 and wrong methods 405', async () => {
 
 test('resolveSettings discovers the windows default script and honours overrides', () => {
   const { root } = makeRoot()
-  const discovered = resolveSettings({ root })
+  const discovered = resolveSettings({ root, configFile: MISSING_CONFIG })
   assert.equal(discovered.syncScript, join(root, 'sync', 'sync-daily.cmd'))
   assert.equal(discovered.kbDir, join(root, '..', 'knowledge-base'))
 
-  const override = resolveSettings({ root, kbDir: join(root, 'kb-elsewhere'), tokenOldDays: 7 })
+  const override = resolveSettings({ root, kbDir: join(root, 'kb-elsewhere'), tokenOldDays: 7, configFile: MISSING_CONFIG })
   assert.equal(override.kbDir, join(root, 'kb-elsewhere'))
   assert.equal(override.tokenOldDays, 7)
 
-  assert.equal(resolveSettings({}).root, null)
+  assert.equal(resolveSettings({ configFile: MISSING_CONFIG }).root, null)
+})
+
+test('the settings file supplies values the loader config omits, and loader config wins', () => {
+  const { root } = makeRoot()
+  const file = join(root, 'settings.json')
+  writeFileSync(file, JSON.stringify({ root, tokenOldDays: 5 }))
+
+  const fromFile = resolveSettings({ configFile: file })
+  assert.equal(fromFile.root, root)
+  assert.equal(fromFile.tokenOldDays, 5)
+  assert.equal(fromFile.configFileUsed, true)
+  assert.equal(fromFile.syncScript, join(root, 'sync', 'sync-daily.cmd'))
+
+  const other = makeRoot()
+  const overridden = resolveSettings({ configFile: file, root: other.root, tokenOldDays: 30 })
+  assert.equal(overridden.root, other.root)
+  assert.equal(overridden.tokenOldDays, 30)
+
+  writeFileSync(file, '{ this is not json')
+  const broken = resolveSettings({ configFile: file })
+  assert.equal(broken.root, null)
+  assert.equal(broken.configFileUsed, false)
 })
 
 test('collectStatus never reads the token file contents', () => {
   const { root, kbDir } = makeRoot()
-  const settings = resolveSettings({ root, kbDir })
+  const settings = resolveSettings({ root, kbDir, configFile: MISSING_CONFIG })
   const status = collectStatus(settings, { running: false, startedAt: null, lastResult: null })
   assert.equal(status.token.present, true)
   const serialized = JSON.stringify(status)

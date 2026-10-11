@@ -39,7 +39,7 @@ dsh-kb-sync 0.1.0 — review
     … + 1 allowlisted/loopback destination(s)
   injections: 0
   source: unpinned | no repository
-  evidence: 18 hit(s)
+  evidence: 21 hit(s)
 
 EXITCODE=1
 ```
@@ -49,7 +49,9 @@ EXITCODE=1
 1. `network (same-origin)` —— 命中的是**控制页在浏览器里**的 `fetch(PREFIX + '/status')`
    （`lib/page.js:126/137/145`）。这是同源调用；host 半部（`lib/index.js`）里没有任何
    `fetch`/`http`/`https`/socket 调用，插件自己不出网。字面量去向只有 loopback。
-2. `env` —— 一个可选的根目录环境变量 `DSH_KB_SYNC_ROOT`（`lib/index.js:73`）。
+2. `env` —— 一个可选的根目录环境变量 `DSH_KB_SYNC_ROOT`（`lib/index.js` 的 `resolveSettings`）；
+   `fs-read` 里还包含**一个可选的设置文件** `$DSH_HOME/.dsh-kb-sync.json`（同样只读路径与 JSON，
+   `.token` 仍然只 `stat`）。加它是为了绕开"profile patch 被应用重写、手写配置行丢失"这个本机已知问题。
 3. `injections: 0` —— 值得记一笔：**首扫时这里是 1**，命中来自 `lib/index.js` 头部注释里
    出现的 `systemPrompt` 字样（该版本扫描器对注释里的 API 名仍计数）。把措辞改成
    "prompt-section registration" 后归零。**这是报告措辞问题，不是行为变化**——代码里从来
@@ -85,3 +87,25 @@ EXITCODE=1
 > `deepseek-web-import` 的 `transport.js` 里有 `if (lib === https) opts.rejectUnauthorized = false;`
 > ——携带 Bearer token 的请求不验证证书。这条**不在**信任检查的红线表里，但是真实风险。
 > 本插件不碰 token，因此不继承该风险。
+
+## 四、真机验证（2026-10-11，本机 DSH 0.2.0-rc.2）
+
+装了（`plugin_manager install_bundle file:<repo>`），逐项实测：
+
+| 验证项 | 结果 |
+|---|---|
+| 插件进 desktop profile 的 bundle 列表且 enabled | ✅ 22 个 bundle 一个没少 |
+| `GET /__dsh-kb-sync/` | ✅ 200，HTML 控制页 |
+| `GET /__dsh-kb-sync/status` | ✅ 200：根目录/脚本/知识库/日志路径、token 年龄 17 天（阈值 21）、LAST-SYNC 末 8 行、最新日志尾部 |
+| `POST /__dsh-kb-sync/doctor` | ✅ 200，`kb.mjs doctor` 退出码 0：「知识库完整性正常」（2541 会话，跨度到 2026-10-11） |
+| 同源守卫 | 单测覆盖（Host 非环回 / `Sec-Fetch-Site` 跨站 / 无自定义头的 POST → 403） |
+| `POST /__dsh-kb-sync/run` | ⚠️ **未在真机点过**：它会真的跑一次每日同步（含消耗额度的段 2）。同一条 `subprocess.spawn` 通路已由 `/doctor` 在真机验证，`/run` 只由单测（mock 子进程）覆盖 —— 这个按钮留给你按 |
+
+两条与"插件开发"有关的实测结论（比功能本身更容易踩）：
+
+1. **`file:` 安装是复制快照，不是软链**（`profiles\<profile>\node_modules\<pkg>` 是实体目录）。
+   改完源码必须重装 —— 直接 `install_bundle` 再来一次会被判 `ambiguous-install`，
+   正确姿势是**先 `remove_bundle` 再 `install_bundle`**。
+2. **保存 profile patch 会热重组配置，但不会换模块**：热重组后 `apply()` 重跑，
+   跑的还是**缓存的旧模块**（本次实测：安装后改了源码，热重组后 `/status` 仍是旧字段集）。
+   要让新代码生效得重启应用 —— 所以这里才需要"设置文件"这条不依赖 patch 的配置通路。
