@@ -182,6 +182,62 @@ prep-inbox.mjs（原样复用，输入还是 sync\inbox\）
 > 健康事实会再落一份新的 `manual-<今天>.json`。要连跑就用「只校验」。**待办**：给 apply 加"本轮已处理"
 > 标记，属方案阶段 3 的范围。
 
+## 一之七、整链、调度与通知都归插件了（2026-10-12，方案阶段 3）
+
+**一条链在插件进程里跑完**，计划任务只负责"戳一下"：
+
+```
+Windows 任务计划 DSH-KB-DailySync  每天 21:00（StartWhenAvailable）
+  └─ tools\pipeline\trigger.cmd
+       读 trigger-source.json（插件在加载时写）→ 知道插件真正住在哪
+       轮询 <插件>/status 直到宿主应答（~3 分钟，登录补跑不会误报失败）
+       POST <插件>/__dsh-kb-sync/pipeline  {"apply":true}
+         ├─ token   在不在 / 多久没换（与旧 .cmd 同一套判据与阈值）
+         ├─ recon   recon-update.mjs（只读）
+         ├─ fetch   update-from-api.mjs（写 Markdown + catalog/jsonl + 备份轮转）
+         ├─ process 段 2：模型 → 写 sync\out\ → apply-extraction 校验 → 落盘 + 6 个重建脚本
+         └─ doctor  kb.mjs doctor（**只警告，不让整链失败**）
+       把逐段「结论 / 退出码 / 耗时」追加进 trigger.log
+```
+
+页面上的**「跑整链」**走同一个路由（带 `force:true`），所以手动与自动是同一条代码路径。
+
+**保留的两条归因规矩**（都是踩过才写的）：① 退出码非 0 **但日志里有该阶段的成功标记** ⇒ 判定为
+Node 退出期噪声、不算失败；② 只有在输出里**出现 `AUTH_UNAUTHORIZED`** 才说"Token 可能过期"，
+网络抖动一律只说"抓取失败"。
+
+**新鲜度闸门**：距上次成功（读 `LAST-SYNC.txt`）不足 `chainMinIntervalMs`（默认 6 小时）时整链返回
+`skipped` —— 登录补跑与 21:00 正跑重叠时，不会重复拉取、也不会反复轮转备份。
+
+**通知**：整链结论写成与退役 `notify.ps1` **逐句相同**的文案，落在状态页（`chain.report.notify`）；
+桌面气泡不再是必需环节，也就没有"BOM 丢了导致气泡静默消失"这个失效模式了。
+
+**触发器为什么这么绕**：任务跑的是**可见的** `D:\dsh\dsh-kb-sync\tools\pipeline\trigger.cmd`，
+而插件可能从**安装快照**（`<profile>\node_modules\dsh-kb-sync\tools\pipeline`）加载 —— 两个目录不是同一个，
+插件写的 `trigger.json` 在快照里（2026-10-12 实测踩到）。所以插件额外写一份 `trigger-source.json` 告诉
+`.cmd`「真目录在哪」；两个文件都在 `.gitignore` 里（本机事实，不是源码）。
+
+### 阶段 3 验收（2026-10-12）
+
+| 环节 | 结果 |
+|---|---|
+| `POST /pipeline` 整链（插件内） | ✅ 5 段全 `ok`、退出码 0：token 1 ms / recon 1.1–1.7 s / fetch 1.1–1.5 s / process 1.5 s（本轮无事可做）/ doctor 1.2–1.9 s |
+| 段 2 全路径（另一次带 9 条真实会话） | ✅ 归类 9 / 健康 1 / 专题建议 3、`applied:true`、6 个重建脚本 exit 0 |
+| 归因：token 缺失 / 未授权 / 网络失败 / 完成后崩溃 | ✅ 单测覆盖（`test/pipeline.test.mjs` 9 例：标记优先于退出码、未授权才叫 token 过期） |
+| `trigger.cmd`（计划任务入口） | ✅ 读到地址、逐段打日志、`rc=0`；宿主不在时等 ~3 分钟并明确报"host did not answer" |
+| 计划任务 | ✅ 动作已改指 `trigger.cmd`；Daily 21:00 + `StartWhenAvailable` + `PT30M` 全部保留 |
+| 知识库体检 | ✅ `kb.mjs doctor` exit 0（2549/2549/2549） |
+
+**退役清单**（阶段 3 之后不再需要，已从本目录移入 `retired\`）：
+`sync-daily.cmd`（旧编排入口）、`sync-extract.cmd`（`dsh headless` 段 2）、`notify.ps1`（桌面气泡）、
+`ENABLE-SEGMENT-2.flag`（段 2 开关）、`headless-prompt.md`（旧提示词）、`check-log.mjs`（标记判定已进
+`lib/pipeline.js`）。
+
+**别一起退休的**：`recon-update.mjs` 与 `update-from-api.mjs` —— 整链仍在直接调用它们（`recon` 与
+`fetch` 两段），它们的相对路径由 `_paths.mjs` 接管，所以**留在本目录**。（2026-10-12 实测：我先按
+"段 1 也归插件了"的推断把这两个也搬进了 `retired\`，随即发现整链的 `reconScript`/`fetchScript` 正指着它们 ——
+推断不能当依据，判据是"谁在调用"。）`.dsh-home\` 同理：它只被 `sync-extract.cmd` 用，可以随该文件一起退役。
+
 ## 二、文件
 
 | 文件 | 作用 |

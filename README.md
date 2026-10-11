@@ -134,7 +134,19 @@ POSIX 示例（`syncScript` 指向 `.sh` 时用 `/bin/sh` 执行）：
 
 **③ 检索** —— 关键词搜标题与正文，可勾「只看用户说的话」；每条命中都可点「展开全文」，直接在页面里读那个会话的完整 Markdown（思考过程与联网检索记录都在）。
 
-**④ 段 2 判断（阶段 2：进程内调宿主模型）** —— 页面上的两个按钮：
+**④ 一键整链（阶段 3：调度与通知归插件）** —— 按顺序跑 **Token 检查 → 只读侦察 → 抓取落盘 →
+段 2 判断/校验/落盘/重建 → 知识库体检**，每一段都有独立结论、退出码与耗时，页面出表格；
+失败时那一行直接写明原因（`token-expired` / `failed` / `spawn-failed` / `finished-with-crash`）。
+
+- **计划任务只负责"戳一下"**：`DSH-KB-DailySync` → `tools\pipeline\trigger.cmd` → `POST /pipeline`。
+  触发器从 `trigger.json`（插件按真实监听端口写）读地址，先轮询 `/status` 等宿主起来（登录时补跑不会误报失败），
+  再把逐段结果追加进 `trigger.log`。**它自己不编排任何东西**，`dsh headless` 已完全不在链上。
+- **新鲜度闸门**：距上次成功不足 `chainMinIntervalMs`（默认 6 小时）时整链返回 `skipped`，
+  不再重复拉取与轮转备份；页面按钮走 `force:true` 跳过这个闸门。
+- **通知并入状态页**：整链的结论文案（`chain.report.notify`，与退役的 `notify.ps1` 逐句相同）显示在页面上；
+  桌面气泡不再是必需环节。
+
+**⑤ 段 2 判断（阶段 2：进程内调宿主模型）** —— 两个按钮：
 
 - **只校验（dry-run，不落盘）**：准备输入 → 调宿主 `llm` 服务拿一份 JSON 判断 → 写 `sync/out/` → 跑管线自己的
   `apply-extraction.mjs` 校验。**默认就是这个模式**，用来先看清"会写哪些文件、各几条"。
@@ -150,7 +162,8 @@ POSIX 示例（`syncScript` 指向 `.sh` 时用 `/bin/sh` 执行）：
 | 路由 | 方法 | 作用 |
 |---|---|---|
 | `/__dsh-kb-sync/` | GET | 控制页（单文件 HTML，无外部请求） |
-| `/__dsh-kb-sync/status` | GET | 状态 JSON：路径、凭据文件年龄、进度文件末 8 行、最新日志尾部、拉取/回填/段 2 进度 |
+| `/__dsh-kb-sync/status` | GET | 状态 JSON：路径、凭据文件年龄、进度文件末 8 行、最新日志尾部、拉取/回填/段 2/整链进度 |
+| `/__dsh-kb-sync/pipeline` | POST | **整链**（token→recon→fetch→process→doctor）；`{"apply":true}` 落盘并重建，`{"force":true}` 跳过新鲜度闸门 |
 | `/__dsh-kb-sync/token` | GET / POST | 查 / 存 userToken（GET 只回「配没配」，**永不回值**） |
 | `/__dsh-kb-sync/token/clear` | POST | 清除已存的 userToken |
 | `/__dsh-kb-sync/pull` | POST | 增量拉取，同步返回本轮摘要 |
