@@ -1,0 +1,5 @@
+{
+ "dataDir": "C:\\Users\\28402\\AppData\\Local\\Temp\\kb-sync-oC5ary",
+ "pipelineDir": "D:\\dsh\\dsh-kb-sync\\tools\\pipeline",
+ "note": "trigger.cmd 读这个文件以找到插件写的 trigger.json；pipelineDir 指错了就改这里或 config.pipelineDir"
+}
