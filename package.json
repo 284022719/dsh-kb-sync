@@ -1,7 +1,7 @@
 {
   "name": "dsh-kb-sync",
   "version": "0.1.0",
-  "description": "DeepSeek Harness plugin that orchestrates a user-owned sync pipeline (DeepSeek web history → local knowledge base) from a same-origin control page: run it, watch its status and logs, and run the knowledge base's own integrity check. The plugin itself holds no credentials and opens no network connection — both stay inside the pipeline it triggers.",
+  "description": "DeepSeek Harness plugin: run and monitor any user-owned sync pipeline from a local control page — status, logs, and an integrity check. The plugin itself holds no credentials and makes no network calls; both stay inside the pipeline it spawns.",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -24,6 +24,7 @@
   },
   "files": [
     "lib",
+    "docs",
     "cordis.patch.yml",
     "README.md",
     "LICENSE"

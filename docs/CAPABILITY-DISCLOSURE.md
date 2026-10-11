@@ -1,28 +1,28 @@
 # 能力披露：dsh-kb-sync
 
-> 方法：`dsh-trust-check`（代码判定、零 token、每条附 `文件:行号`）。
+> 方法：[`dsh-trust-check`](https://www.npmjs.com/package/dsh-trust-check)——代码判定、零 token、每条结论附 `文件:行号`。
 > 原则照该工具：**只证"有"，不证"无"**；未检出不等于安全。
-> 本文件同时是**实现前的设计披露**与**实现后的实测披露**，两者对照着看才有意义。
+> 本文件把**实现前定的设计目标**与**实现后的实测报告**并排放，方便你自己核对偏差。
 
-## 一、实现前的设计目标（写代码之前定的）
+## 一、设计目标 vs 实测
 
-| 能力 | 设计 | 实际 |
+| 能力 | 设计 | 实测 |
 |---|---|---|
-| shell / subprocess | **要**（调用既有流水线） | ✅ 命中（`lib/index.js:299`、`:339`） |
-| fs-read | **要**（状态、日志） | ✅ 命中（多处） |
+| shell / subprocess | **要**（起你配的命令） | ✅ 命中（`lib/index.js:368`、`:408`） |
+| fs-read | **要**（状态文件、日志、设置文件） | ✅ 命中（`lib/index.js:30` 等） |
 | fs-write | **不要** | ✅ 未命中 |
-| credentials | **不要**（连服务都不碰） | ✅ 未命中 |
-| network（host 侧） | **不要** | ✅ 未命中（唯一 network 命中在控制页的同源 `fetch`） |
-| 动态代码 | **不要**（无 `eval`/`new Function`） | ✅ 未命中 |
+| credentials（DSH 凭据服务） | **不要**（连服务都不碰） | ✅ 未命中 |
+| network（host 侧） | **不要** | ✅ 未命中（唯一 `network` 命中在控制页的同源 `fetch`，见下） |
+| 动态代码（`eval` / `new Function`） | **不要** | ✅ 未命中 |
 | 提示词注入 | **不要** | ✅ `injections: 0` |
-| 安装脚本 | **不要** | ✅ 未命中 |
+| 安装脚本（install/postinstall/preinstall） | **不要** | ✅ 未命中 |
 
-预期红线：**0 条**。预期裁决：**需确认（review）**，触发原因是 `shell` 属特权能力。
+预期红线 **0 条**；预期裁决 **review（需确认）**，触发原因只有 `shell` 属特权能力。实测与之相符。
 
-## 二、实现后实测
+## 二、实测扫描输出
 
 ```sh
-node <trust-check>/bin/trust-check.mjs --dir <path-to-this-repo> --exit-code
+npx dsh-trust-check --dir <path-to-this-repo> --exit-code
 ```
 
 ```
@@ -38,74 +38,58 @@ dsh-kb-sync 0.1.0 — review
   destinations (literal):
     … + 1 allowlisted/loopback destination(s)
   injections: 0
-  source: unpinned | no repository
+  source: unpinned | git+https://github.com/<owner>/dsh-kb-sync.git
   evidence: 21 hit(s)
 
 EXITCODE=1
 ```
 
-**与设计目标一致，`redLines` 为空。** 三处需要读报告的人自己判：
+三处需要读报告的人自己判：
 
-1. `network (same-origin)` —— 命中的是**控制页在浏览器里**的 `fetch(PREFIX + '/status')`
-   （`lib/page.js:126/137/145`）。这是同源调用；host 半部（`lib/index.js`）里没有任何
-   `fetch`/`http`/`https`/socket 调用，插件自己不出网。字面量去向只有 loopback。
-2. `env` —— 一个可选的根目录环境变量 `DSH_KB_SYNC_ROOT`（`lib/index.js` 的 `resolveSettings`）；
-   `fs-read` 里还包含**一个可选的设置文件** `$DSH_HOME/.dsh-kb-sync.json`（同样只读路径与 JSON，
-   `.token` 仍然只 `stat`）。加它是为了绕开"profile patch 被应用重写、手写配置行丢失"这个本机已知问题。
-3. `injections: 0` —— 值得记一笔：**首扫时这里是 1**，命中来自 `lib/index.js` 头部注释里
-   出现的 `systemPrompt` 字样（该版本扫描器对注释里的 API 名仍计数）。把措辞改成
-   "prompt-section registration" 后归零。**这是报告措辞问题，不是行为变化**——代码里从来
-   没有注册过提示词段落。披露在此，避免"报告变干净了"被误读成"修了漏洞"。
+1. **`network (same-origin)`** —— 命中的是**控制页在浏览器里**的三处 `fetch(PREFIX + '/…')`
+   （`lib/page.js:126/137/145`）。host 半部（`lib/index.js`）没有任何 `fetch`/`http`/`https`/socket 调用，
+   插件自己不出网；字面量去向只有 loopback。
+2. **`env`** —— 一个可选的根目录环境变量 `DSH_KB_SYNC_ROOT`（`lib/index.js:74`、`:123`）。
+3. **`injections: 0`** —— 值得记一笔：**首扫时这里是 1**，命中来自 `lib/index.js` 头部注释里出现的
+   `systemPrompt` 字样（该版本扫描器对注释中的 API 名仍会计数）；把措辞改成 "prompt-section registration"
+   后归零。**这是报告措辞问题，不是行为变化**——代码里从来没有注册过提示词段落。写在这里，是为了避免
+   "报告变干净了"被误读成"修了漏洞"。
 
-### 红线逐条核对（trust-check 的五条硬红线）
+## 三、五条硬红线逐条核对
 
 | 红线 | 是否命中 | 依据 |
 |---|---|---|
-| 1. 声明 install/postinstall/preinstall | 否 | `package.json` 只有 `test` |
-| 2. `cordis.patch.yml` override/disable `@deepseek-ai/*` | 否 | 补丁只有一条 `insert` |
-| 3. 读凭据/密钥**值** + 有网络 | 否 | 不 import `credentials` 相关调用；`.token` **只 `stat`**（`lib/index.js:244`，且 `test/plugin.test.mjs` 有用例断言正文不进响应） |
-| 4. 明文 `http://` 外连 + 有网络 | 否 | 唯一 `http://` 字面量是 `new URL(req.url, 'http://localhost')` 的解析基址 |
-| 5. 字面量 IP 外连 + 有网络 | 否 | 无字面量 IP |
+| 1. 声明 install / postinstall / preinstall | 否 | `package.json` 的 `scripts` 只有 `test` |
+| 2. `cordis.patch.yml` override / disable `@deepseek-ai/*` 核心 bundle | 否 | 补丁只有一条 `insert` |
+| 3. 读凭据/密钥**值** 且 有网络 | 否 | 不 import `credentials` 相关调用；凭据文件**只 `stat`**（有单测断言其正文永不进响应） |
+| 4. 明文 `http://` 外连 且 有网络 | 否 | 唯一 `http://` 字面量是 `new URL(req.url, 'http://localhost')` 的解析基址 |
+| 5. 字面量 IP 外连 且 有网络 | 否 | 无字面量 IP |
 
-### 已知局限（别把报告读成保证）
+## 四、已知局限（别把报告读成保证）
 
-- 静态扫描**看不到运行时**：如果将来有人把 `ctx.get('subprocess')` 换成别的出网实现，报告不会自动变红。
-- 扫描器**不展开依赖树**——本插件零依赖，所以这一条目前不适用。
-- `source: unpinned | no repository`：`package.json` 尚未回填 `repository`（仓库地址在发布时才有）。
-  发布后回填即可从 "unpinned" 变成锁定来源。
+- 静态扫描**看不到运行时行为**：若日后有人把 `ctx.get('subprocess')` 换成别的出网实现，报告不会自动变红。
+- 扫描器**不展开依赖树**——本插件零依赖，这一条目前不适用。
+- `source: unpinned`：`--dir` 模式只读 `package.json` 的 `repository` 字段（本仓库已回填，所以那一行会显示仓库 URL），
+  但**版本/commit 锁定与否取决于你的安装方式**（`github:owner/repo` 不锁 commit）。
 
-## 三、对照：抓网页端历史的两个社区插件（同一次会话实测）
+## 五、顺带记下的两条插件开发实测结论
 
-| | `deepseek-web-import` | `dsh-web-chat` | **dsh-kb-sync** |
-|---|---|---|---|
-| 抓网页端历史 | 是（手工粘 `userToken`） | 是（真浏览器登录） | 否（复用你已有的流水线） |
-| 覆盖存量 | 否（接口最多最近 100 条） | 可（recover） | 取决于你的流水线 |
-| 产出知识库 | 否（导入为 DSH 会话） | 否（markdown / 会话） | 沿用你已有的聚类与提炼 |
-| 红线 | **1 条**（读凭据值 + 出网） | 0 条 | 0 条 |
-| 需确认项 | TLS 校验被关闭、子进程 | 浏览器自动化、`dynamic-code`、prompt 注入、浏览器 profile 即凭据 | `shell` 特权能力 |
+不涉及本插件功能，但踩起来比功能本身更费时间，写出来给同类插件作者：
 
-> `deepseek-web-import` 的 `transport.js` 里有 `if (lib === https) opts.rejectUnauthorized = false;`
-> ——携带 Bearer token 的请求不验证证书。这条**不在**信任检查的红线表里，但是真实风险。
-> 本插件不碰 token，因此不继承该风险。
+1. **`file:` 安装是复制快照，不是软链**（`profiles/<profile>/node_modules/<pkg>` 是实体目录）。
+   改完源码要刷新，直接再 `install_bundle` 会被判 `ambiguous-install`；正确姿势是**先 `remove_bundle` 再 `install_bundle`**。
+2. **保存 profile patch 会热重组配置，但不会换模块**：热重组会让 `apply()` 重跑，跑的还是**缓存的旧模块**
+   （实测：装完旧版后改源码，热重组后 `/status` 仍返回旧字段集）。要让新代码生效得重启应用——
+   也正因为如此，本插件才提供"设置文件"这条不依赖 patch 的配置通路。
 
-## 四、真机验证（2026-10-11，本机 DSH 0.2.0-rc.2）
-
-装了（`plugin_manager install_bundle file:<repo>`），逐项实测：
+## 六、真机验证（Windows + DSH 0.2.0-rc.2）
 
 | 验证项 | 结果 |
 |---|---|
-| 插件进 desktop profile 的 bundle 列表且 enabled | ✅ 22 个 bundle 一个没少 |
 | `GET /__dsh-kb-sync/` | ✅ 200，HTML 控制页 |
-| `GET /__dsh-kb-sync/status` | ✅ 200：根目录/脚本/知识库/日志路径、token 年龄 17 天（阈值 21）、LAST-SYNC 末 8 行、最新日志尾部 |
-| `POST /__dsh-kb-sync/doctor` | ✅ 200，`kb.mjs doctor` 退出码 0：「知识库完整性正常」（2541 会话，跨度到 2026-10-11） |
-| 同源守卫 | 单测覆盖（Host 非环回 / `Sec-Fetch-Site` 跨站 / 无自定义头的 POST → 403） |
-| `POST /__dsh-kb-sync/run` | ⚠️ **未在真机点过**：它会真的跑一次每日同步（含消耗额度的段 2）。同一条 `subprocess.spawn` 通路已由 `/doctor` 在真机验证，`/run` 只由单测（mock 子进程）覆盖 —— 这个按钮留给你按 |
-
-两条与"插件开发"有关的实测结论（比功能本身更容易踩）：
-
-1. **`file:` 安装是复制快照，不是软链**（`profiles\<profile>\node_modules\<pkg>` 是实体目录）。
-   改完源码必须重装 —— 直接 `install_bundle` 再来一次会被判 `ambiguous-install`，
-   正确姿势是**先 `remove_bundle` 再 `install_bundle`**。
-2. **保存 profile patch 会热重组配置，但不会换模块**：热重组后 `apply()` 重跑，
-   跑的还是**缓存的旧模块**（本次实测：安装后改了源码，热重组后 `/status` 仍是旧字段集）。
-   要让新代码生效得重启应用 —— 所以这里才需要"设置文件"这条不依赖 patch 的配置通路。
+| `GET /__dsh-kb-sync/status` | ✅ 200：根目录 / 同步脚本 / 知识库目录 / 日志目录、凭据文件年龄与阈值、进度文件末 8 行、最新日志尾部 |
+| `POST /__dsh-kb-sync/doctor` | ✅ 200，体检命令退出码 0 |
+| 同源守卫（真机） | ✅ 无自定义头的 `POST /run` → 403；`Sec-Fetch-Site: cross-site` → 403 |
+| 日志越界（真机） | ✅ `GET /log?name=..%2F..%2F<凭据文件>` → 400 |
+| `POST /__dsh-kb-sync/run` | ⚠️ **成功路径未在真机点过**：它会真的跑一次同步（可能耗时、并消耗你自己流水线的额度）。同一条 `subprocess.spawn` 通路已由 `/doctor` 在真机验证，`/run` 由单测（mock 子进程）覆盖 |
+| POSIX 执行分支 | ⚠️ 已实现但**未在真机验证**（本机只有 Windows） |

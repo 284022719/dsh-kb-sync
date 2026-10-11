@@ -251,7 +251,7 @@ test('POST /run spawns the sync script with an explicit argv and no stdin', asyn
   assert.match(finished.json.lastResult.tail, /segment 1 done/)
 })
 
-test('POST /doctor runs kb.mjs doctor and returns its output', async () => {
+test('POST /doctor runs the default kb.mjs doctor and returns its output', async () => {
   const { root, kbDir } = makeRoot()
   const sub = makeSubprocess({ stdout: 'doctor: all good\n' })
   const host = boot({ root, kbDir, subprocess: sub.subprocess })
@@ -261,6 +261,31 @@ test('POST /doctor runs kb.mjs doctor and returns its output', async () => {
   assert.match(res.json.stdout, /doctor: all good/)
   assert.equal(sub.specs[0].argv[1], join(kbDir, 'tools', 'kb.mjs'))
   assert.equal(sub.specs[0].argv[2], 'doctor')
+})
+
+test('POST /doctor honours a custom doctor script and arguments', async () => {
+  const { root, kbDir } = makeRoot()
+  const script = join(root, 'check.mjs')
+  writeFileSync(script, '// fixture\n')
+  const sub = makeSubprocess({ stdout: 'custom check ok\n' })
+  const host = boot({
+    config: {
+      root,
+      kbDir,
+      configFile: MISSING_CONFIG,
+      doctorScript: script,
+      doctorArgs: ['verify', '--json'],
+    },
+    subprocess: sub.subprocess,
+  })
+  const res = await request(host, { method: 'POST', url: `${PREFIX}/doctor` })
+  assert.equal(res.status, 200)
+  assert.equal(res.json.ok, true)
+  assert.deepEqual(sub.specs[0].argv.slice(1), [script, 'verify', '--json'])
+
+  const missing = boot({ config: { root, kbDir, configFile: MISSING_CONFIG, doctorScript: join(root, 'nope.mjs') } })
+  const missingRes = await request(missing, { method: 'POST', url: `${PREFIX}/doctor` })
+  assert.equal(missingRes.json.error, 'doctor-script-missing')
 })
 
 test('unknown sub-paths 404 and wrong methods 405', async () => {
