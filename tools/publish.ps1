@@ -33,6 +33,20 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'gh is not authenticated. Run: gh auth login' }
   }
 
+  # Fill package.json's repository field from the authenticated account so the
+  # published package has a checkable source instead of "unpinned | no repository".
+  $login = gh api user --jq .login
+  $pkgPath = Join-Path $repoRoot 'package.json'
+  $pkg = Get-Content $pkgPath -Raw | ConvertFrom-Json
+  $repoUrl = "git+https://github.com/$login/$RepoName.git"
+  if (-not $pkg.repository -or $pkg.repository.url -ne $repoUrl) {
+    if ($pkg.PSObject.Properties['repository']) { $pkg.repository.url = $repoUrl }
+    else { $pkg | Add-Member -NotePropertyName repository -NotePropertyValue ([pscustomobject]@{ type = 'git'; url = $repoUrl }) }
+    $json = ($pkg | ConvertTo-Json -Depth 10) + "`n"
+    [IO.File]::WriteAllText($pkgPath, $json, (New-Object Text.UTF8Encoding $false))
+    Write-Output "package.json repository -> $repoUrl"
+  }
+
   if (-not (Test-Path (Join-Path $repoRoot '.git'))) {
     git init -b main | Write-Output
   }
