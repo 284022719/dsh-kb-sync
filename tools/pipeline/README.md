@@ -134,13 +134,49 @@ dsh: TRANSPORT: DeepSeek Messages transport failed
 > （`~\.dsh\sessions` 204 → 205 条）。它就是那次的 headless 运行，可手动删掉；教训照旧：
 > 别拿交互式 home 跑 headless。
 
+## 一之六、段 2 已改成进程内调宿主模型（2026-10-12，方案阶段 2）
+
+`dsh headless` 那一环被 `dsh-kb-sync` 插件的 `POST /__dsh-kb-sync/process` 取代 —— 一个流、一次请求，
+不再需要第二个 DSH 运行时、独立的 `.dsh-home`、凭据副本，也不再依赖"工作区只写自己目录内"那套沙箱前提。
+
+```
+prep-inbox.mjs（原样复用，输入还是 sync\inbox\）
+  → llm.stream({ provider, model, messages, system: extract-prompt.md })
+  → 写 sync\out\{update-topics,health-facts,finance-facts,specialty-suggestions}.json + summary.md
+  → apply-extraction.mjs --dry-run   （校验：idx 集合 / 话题合法性 / 专题 parent）
+  → apply-extraction.mjs --apply + 重建脚本（只有点「跑并落盘」才走这一步）
+```
+
+**刻意的边界（一条都没放松）**：模型只产出 JSON，从不直接改档案；落盘前必过 `apply-extraction.mjs`；
+财务只进候选区；页面上默认那个按钮就是 dry-run。
+
+`headless-prompt.md` 留在本目录当历史件（它描述的是"写 5 个文件"的旧形状）；新形状是**一个 JSON 对象**，
+契约在 `extract-prompt.md`。`ENABLE-SEGMENT-2.flag`、`.dsh-home`、`sync-extract.cmd` 现在只有旧的
+`sync-daily.cmd` 还在用 —— 等夜跑链路也改到插件路由（方案阶段 3）后即可整体退役。
+
+**路径注意**：这条链由**插件**发起，`settings.pipelineDir` 默认指向
+`node_modules\dsh-kb-sync\tools\pipeline\`（即安装快照里的那份），所以改完管线脚本要么重装 bundle、
+要么把改动同步进快照；数据仍只写在 `D:\dsh\dsh-kb-sync\data\import\`（由 `pipeline.json` 决定）。
+
+### 验收实测（2026-10-12）
+
+| 环节 | 结果 |
+|---|---|
+| `apply-extraction.mjs --dry-run`（9 条真实会话、手写一份"看起来合理"的归类） | ✅ 全部校验通过、**未写盘**（`update-topics.json` 的 mtime 未变） |
+| 缺 7 条 idx | ✅ 报「归类缺 7 条」、退出码 2、不落盘 |
+| 非法话题 | ✅ 报「非法话题 1 个」、退出码 2、不落盘 |
+| 坏 JSON | ✅ 报「不是合法 JSON」、退出码 2、不落盘 |
+| 模型那一环 | 路由可达、能返回结构化错误；**换新模块要重启应用**，重启后按上面 `dry-run` 两步走即可 |
+
 ## 二、文件
 
 | 文件 | 作用 |
 |---|---|
 | `sync-daily.cmd` | 入口（本目录）。段 1 + 调用段 2。**必须保持纯 ASCII** |
 | `sync-extract.cmd` | 段 2。自带开关，没有标志文件时什么都不做。**必须保持纯 ASCII** |
-| `pipeline.json` | **路径唯一来源**（`importDir` / `tokenFile` / `healthDir` / `financeDir` / `kbDir`）。改路径只改这里；环境变量可覆盖（`DSH_IMPORT_DIR` 等） |
+| `pipeline.json` | **路径唯一来源**（`importDir` / `tokenFile` / `healthDir` / `financeDir` / `kbDir`）。改路径只改这里；环境变量可覆盖（`DSH_IMPORT_DIR` 等）。模板见 `pipeline.example.json` |
+| `extract-prompt.md` | 段 2 的**新**提示词：要求模型只输出一个 JSON 对象（归类 / 健康事实 / 财务候选 / 专题建议 / 摘要） |
+| `headless-prompt.md` | 段 2 的**旧**提示词（写 5 个文件给 `dsh headless`）。保留作历史与对照，不再被调用 |
 | `_paths.mjs` | 每个 `.mjs` 都 import 它取绝对路径；import 时把 cwd 钉在本目录，运行目录无关 |
 | `prep-inbox.mjs` | 段 2a 前置：把判断所需输入放进 `sync\inbox\`（含健康与财务摘要） |
 | `check-log.mjs` | 非 0 退出时到日志里找该阶段的成功标记，区分「真失败」与「完成后崩溃」，以及鉴权失败与其它失败 |

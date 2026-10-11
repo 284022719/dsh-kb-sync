@@ -12,7 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { HEALTH_DIR, PIPE_DIR } from './_paths.mjs';
 
 const HEALTH = resolve(HEALTH_DIR);
-// health-console 仍在 D:\dsh\health-console（插件外的既有控制台）。
+// health-console 仍在 D:\dsh\控制台中心\health-console（插件外的既有控制台）。
 const HEALTH_CONSOLE_DIR = resolve(PIPE_DIR, '..', '..', '..', 'health-console');
 const KNOW = join(HEALTH, 'knowledge.json');
 const CORR = join(HEALTH, 'corrections.json');

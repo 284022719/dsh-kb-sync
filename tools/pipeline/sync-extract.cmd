@@ -107,7 +107,7 @@ REM ---- 2b: rebuild health dossier ----
 echo ---- rebuild health ---- >> "%LOG%"
 node "%PIPE_DIR%\build-health-profile.mjs" >> "%LOG%" 2>&1
 node "%PIPE_DIR%\sync-knowledge.mjs" >> "%LOG%" 2>&1
-pushd "D:\dsh\health-console"
+pushd "D:\dsh\控制台中心\health-console"
 node make-snapshot.mjs >> "%LOG%" 2>&1
 popd
 
