@@ -214,19 +214,34 @@ Node 退出期噪声、不算失败；② 只有在输出里**出现 `AUTH_UNAUT
 
 **触发器为什么这么绕**：任务跑的是**可见的** `D:\dsh\dsh-kb-sync\tools\pipeline\trigger.cmd`，
 而插件可能从**安装快照**（`<profile>\node_modules\dsh-kb-sync\tools\pipeline`）加载 —— 两个目录不是同一个，
-插件写的 `trigger.json` 在快照里（2026-10-12 实测踩到）。所以插件额外写一份 `trigger-source.json` 告诉
-`.cmd`「真目录在哪」；两个文件都在 `.gitignore` 里（本机事实，不是源码）。
+插件写的 `trigger.json` 在快照里（2026-10-12 实测踩到）。所以插件在两处各写一份 `trigger-source.json`
+（"真目录在哪"），`trigger.cmd` 把两份当**候选**：逐个检查候选指向的 `pipelineDir` 里**真有没有
+`trigger.json`**，取第一个成立的。为什么必须校验、而不是"取第一份存在的"：从仓库直接加载的实例
+（`node --test`、临时 fixture）会把 `%TEMP%\kb-sync-<rand>` 写进源码那份提示 —— 2026-10-12 实测正是
+"源码提示被测试覆盖 → 任务指向不存在的目录"。校验之后两条路径都验过：源码提示**删掉**、或**指向临时目录**，
+任务都能回退到快照那份并 `rc=0`。两个提示文件与 `trigger.log` 都在 `.gitignore` 里（本机事实，不是源码）。
 
 ### 阶段 3 验收（2026-10-12）
 
 | 环节 | 结果 |
 |---|---|
-| `POST /pipeline` 整链（插件内） | ✅ 5 段全 `ok`、退出码 0：token 1 ms / recon 1.1–1.7 s / fetch 1.1–1.5 s / process 1.5 s（本轮无事可做）/ doctor 1.2–1.9 s |
+| `POST /pipeline` 整链（插件内） | ✅ 5 段全 `ok`、退出码 0：token ~0 ms / recon 1.0–1.7 s / fetch 1.0–1.5 s / process 1.4–1.7 s / doctor 1.2–1.9 s |
 | 段 2 全路径（另一次带 9 条真实会话） | ✅ 归类 9 / 健康 1 / 专题建议 3、`applied:true`、6 个重建脚本 exit 0 |
+| **新鲜度闸门** | ✅ 连跑两次：第二次 `skipped=fresh`「0 分钟前刚成功跑过（阈值 360 分钟）」，2 秒返回 |
 | 归因：token 缺失 / 未授权 / 网络失败 / 完成后崩溃 | ✅ 单测覆盖（`test/pipeline.test.mjs` 9 例：标记优先于退出码、未授权才叫 token 过期） |
-| `trigger.cmd`（计划任务入口） | ✅ 读到地址、逐段打日志、`rc=0`；宿主不在时等 ~3 分钟并明确报"host did not answer" |
+| `trigger.cmd`（计划任务入口） | ✅ 读到候选、逐段打日志、`rc=0`；源码提示缺失或指向临时目录时**自动回退**快照那份 |
 | 计划任务 | ✅ 动作已改指 `trigger.cmd`；Daily 21:00 + `StartWhenAvailable` + `PT30M` 全部保留 |
 | 知识库体检 | ✅ `kb.mjs doctor` exit 0（2549/2549/2549） |
+
+**这一轮实测又抓出 4 个静默问题**（都修了，细节在提交信息里）：
+
+1. **触发器找不到提示**：插件只把 `trigger-source.json` 写进快照，而任务跑的是源码那份 `.cmd` → `rc=2`。
+2. **闸门从未生效**：状态行用 UTC 写、按本地解析（UTC+8 机器上"3 分钟前"被看成"8 小时前"），
+   于是第二次整链照样重跑了一遍拉取。
+3. **测试污染生产提示**：`node --test` 会用临时 `dataDir` 覆盖源码那份提示 → 任务指向不存在的目录。
+   修法：只让从 `node_modules` 加载的实例写源码那份 + 触发器**校验候选**（不只看文件是否存在）。
+4. `resolve(PLUGIN_ROOT, '..', '..')` 推错了源码根（从快照算出来是 profile 目录、从仓库算出来是 `D:\`）——
+   两种布局下都应是 `resolve(PLUGIN_ROOT, '..')`。
 
 **退役清单**（阶段 3 之后不再需要，已从本目录移入 `retired\`）：
 `sync-daily.cmd`（旧编排入口）、`sync-extract.cmd`（`dsh headless` 段 2）、`notify.ps1`（桌面气泡）、
@@ -242,19 +257,17 @@ Node 退出期噪声、不算失败；② 只有在输出里**出现 `AUTH_UNAUT
 
 | 文件 | 作用 |
 |---|---|
-| `sync-daily.cmd` | 入口（本目录）。段 1 + 调用段 2。**必须保持纯 ASCII** |
-| `sync-extract.cmd` | 段 2。自带开关，没有标志文件时什么都不做。**必须保持纯 ASCII** |
-| `pipeline.json` | **路径唯一来源**（`importDir` / `tokenFile` / `healthDir` / `financeDir` / `kbDir`）。改路径只改这里；环境变量可覆盖（`DSH_IMPORT_DIR` 等）。模板见 `pipeline.example.json` |
-| `extract-prompt.md` | 段 2 的**新**提示词：要求模型只输出一个 JSON 对象（归类 / 健康事实 / 财务候选 / 专题建议 / 摘要） |
-| `headless-prompt.md` | 段 2 的**旧**提示词（写 5 个文件给 `dsh headless`）。保留作历史与对照，不再被调用 |
+| `trigger.cmd` | **计划任务入口**（本目录）。只负责"戳一下"：挑一份可用的 `trigger-source.json` → 等宿主 `/status` 应答 → `POST /pipeline` → 逐段结果追加进 `trigger.log`。**必须保持纯 ASCII**；不编排任何东西 |
+| `retired\` | 阶段 3 退役件：`sync-daily.cmd`（旧编排）、`sync-extract.cmd`（`dsh headless` 段 2）、`notify.ps1`（桌面气泡）、`ENABLE-SEGMENT-2.flag`、`headless-prompt.md`、`check-log.mjs`。**不被任何东西调用**，留作历史与回退 |
+| `recon-update.mjs` | **仍在用**：整链的第 ② 段（只读侦察）。**别跟着上面那批一起退休** |
+| `update-from-api.mjs` | **仍在用**：整链的第 ③ 段（抓取落盘 + 备份轮转）。同上 |
+| `pipeline.json` | **路径唯一来源**（`importDir` / `tokenFile` / `healthDir` / `healthConsoleDir` / `financeDir` / `kbDir`）。改路径只改这里；环境变量可覆盖（`DSH_IMPORT_DIR` 等）。模板见 `pipeline.example.json` |
+| `extract-prompt.md` | 段 2 的提示词：要求模型只输出一个 JSON 对象（归类 / 健康事实 / 财务候选 / 专题建议 / 摘要） |
 | `_paths.mjs` | 每个 `.mjs` 都 import 它取绝对路径；import 时把 cwd 钉在本目录，运行目录无关 |
-| `prep-inbox.mjs` | 段 2a 前置：把判断所需输入放进 `sync\inbox\`（含健康与财务摘要） |
-| `check-log.mjs` | 非 0 退出时到日志里找该阶段的成功标记，区分「真失败」与「完成后崩溃」，以及鉴权失败与其它失败 |
-| `auth-marker.mjs` | 鉴权失败判定：`classifyAuth()` 区分「真没授权」与「网络/接口问题」，命中时打印 ASCII 标记 `AUTH_UNAUTHORIZED` |
+| `prep-inbox.mjs` | 段 2 前置：把判断所需输入放进 `sync\inbox\`（含健康与财务摘要、以及**归类用的 `update-new-items.tsv`**） |
+| `auth-marker.mjs` | 鉴权失败判定：`classifyAuth()` 区分「真没授权」与「网络/接口问题」，命中时打印 ASCII 标记 `AUTH_UNAUTHORIZED`（整链靠它才敢说"Token 过期"） |
 | `prep-finance-update.mjs` | 生成 `<data\import>\finance-digest\digest-20.md`，只挑本轮财务会话 |
-| `apply-extraction.mjs` | 段 2b：校验并应用 `sync\out\` 的产出（含写入财务候选区） |
-| `headless-prompt.md` | 段 2a 交给 `dsh headless` 的 SOP 提示词 |
-| `notify.ps1` | 桌面气泡 + 状态文件。中文文案在这里（存为带 BOM 的 UTF-8） |
+| `apply-extraction.mjs` | 校验并应用 `sync\out\` 的产出（`--dry-run` 只校验不落盘、`--apply` 落盘；含写入财务候选区） |
 | `..\..\data\import\sync\inbox|out\` | 每次运行重建。`inbox` 是输入，`out` 是 headless 产出（可事后审计） |
 | `..\..\data\import\.dsh-home\` | 段 2 专用 DSH home：`dsh headless` 的会话、凭据与缓存都落在这里，**不进交互式侧栏** |
 | `..\..\data\import\sync\logs\` | 段 1 日志 `sync-<时间戳>.log`、段 2 摘要 `extract-<日期>.md` |
