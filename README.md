@@ -97,7 +97,7 @@ POSIX 示例（`syncScript` 指向 `.sh` 时用 `/bin/sh` 执行）：
 - **拉取新对话（增量）**：会话列表 → 只取「新增 / 续聊」的线程 → 写 `conversations/*.md` + `conversations.jsonl` + `catalog.json`；续聊就地更新、文件名不变。
 - **全量回填**：走官方导出包（`export_all` → 轮询到就绪 → 下载 zip → 解析 `conversations.json`）。只在第一次需要完整历史时用；已有会话仅在导出内容更多时才更新。服务端生成导出可能要几分钟，所以它在后台跑，页面每 3 秒刷新阶段：`trigger → waiting-export → downloading → parsing → merging → done`。
 
-**③ 检索** —— 关键词搜标题与正文，可勾「只看用户说的话」。编排区三个按钮仍是：运行已有同步脚本 / 跑知识库体检 / 刷新状态。
+**③ 检索** —— 关键词搜标题与正文，可勾「只看用户说的话」；每条命中都可点「展开全文」，直接在页面里读那个会话的完整 Markdown（思考过程与联网检索记录都在）。编排区三个按钮仍是：运行已有同步脚本 / 跑知识库体检 / 刷新状态。
 
 | 路由 | 方法 | 作用 |
 |---|---|---|
@@ -109,6 +109,7 @@ POSIX 示例（`syncScript` 指向 `.sh` 时用 `/bin/sh` 执行）：
 | `/__dsh-kb-sync/backfill` | POST | 启动全量回填，立即返回 202（进度看 `/status`） |
 | `/__dsh-kb-sync/kb` | GET | 知识库状态（条数 / 大小 / 最近一次拉取） |
 | `/__dsh-kb-sync/search?q=&role=` | GET | 检索；`role=user` 只看用户发言 |
+| `/__dsh-kb-sync/conversation?id=` | GET | 取一个会话的完整 Markdown（超过 400 KB 截断并标注） |
 | `/__dsh-kb-sync/run` | POST | 启动你已有的同步命令；已在运行时返回 409 |
 | `/__dsh-kb-sync/doctor` | POST | 运行体检命令，返回 stdout / stderr / 退出码 |
 | `/__dsh-kb-sync/log?name=` | GET | 读日志目录下某个文件的尾部（文件名白名单 + 越界拒绝） |

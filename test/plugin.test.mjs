@@ -577,6 +577,34 @@ test('search finds titles and message text, and can filter to the user voice', a
   assert.equal(kb.json.catalog.rows, 1)
 })
 
+test('GET /conversation returns one conversation as markdown', async () => {
+  const { root, kbDir } = makeRoot()
+  const credentials = makeCredentials({ DEEPSEEK_WEB_TOKEN: TOKEN_VALUE })
+  const api = makeApi({
+    sessions: [{ id: 'eeeeeeee-5555', title: '睡眠', updated_at: 1_700_000_100 }],
+    history: { 'eeeeeeee-5555': makeHistory({ id: 'eeeeeeee-5555', title: '睡眠', turns: [{ user: '最近总醒', assistant: '先固定起床时间。', thinking: '排查作息' }] }) },
+  })
+  const host = boot({ root, kbDir, credentials, fetchImpl: api.fetchImpl })
+  await request(host, { method: 'POST', url: `${PREFIX}/pull` })
+
+  const ok = await request(host, { url: `${PREFIX}/conversation?id=eeeeeeee-5555` })
+  assert.equal(ok.status, 200)
+  assert.equal(ok.json.ok, true)
+  assert.match(ok.json.markdown, /# 睡眠/)
+  assert.match(ok.json.markdown, /## 👤 用户/)
+  assert.match(ok.json.markdown, /### 💭 思考过程/)
+  assert.match(ok.json.markdown, /### 🤖 DeepSeek/)
+  assert.equal(ok.json.truncated, false)
+  assert.equal(ok.json.file.endsWith('.md'), true)
+
+  assert.equal((await request(host, { url: `${PREFIX}/conversation?id=nope` })).status, 404)
+  assert.equal((await request(host, { url: `${PREFIX}/conversation` })).status, 404)
+
+  const unconfigured = boot({ config: { configFile: MISSING_CONFIG } })
+  const res = await request(unconfigured, { url: `${PREFIX}/conversation?id=x` })
+  assert.equal(res.status, 400)
+})
+
 test('the knowledge base writer refuses to escape its directory', async () => {
   const { resolveInside } = await import('../lib/store.js')
   assert.throws(() => resolveInside('D:\\kb', '..\\evil.md'), /路径越界/)
