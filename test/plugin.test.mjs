@@ -289,3 +289,26 @@ test('collectStatus never reads the token file contents', () => {
   const serialized = JSON.stringify(status)
   assert.equal(serialized.includes('xxxxxxxx'), false, 'token content must never reach the response')
 })
+
+test('registers its route even when the host exposes no effect seam', () => {
+  const { root, kbDir } = makeRoot()
+  const routes = []
+  const ctx = {
+    logger: { warn() {} },
+    get(key) {
+      if (key === 'webServer') {
+        return {
+          register(route) {
+            routes.push(route)
+            return () => routes.splice(routes.indexOf(route), 1)
+          },
+        }
+      }
+      return undefined
+    },
+  }
+  apply(ctx, { root, kbDir })
+  assert.equal(routes.length, 1)
+  assert.equal(routes[0].path, PREFIX)
+  assert.equal(routes[0].kind, 'prefix')
+})
