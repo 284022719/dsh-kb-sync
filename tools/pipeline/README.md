@@ -166,7 +166,21 @@ prep-inbox.mjs（原样复用，输入还是 sync\inbox\）
 | 缺 7 条 idx | ✅ 报「归类缺 7 条」、退出码 2、不落盘 |
 | 非法话题 | ✅ 报「非法话题 1 个」、退出码 2、不落盘 |
 | 坏 JSON | ✅ 报「不是合法 JSON」、退出码 2、不落盘 |
-| 模型那一环 | 路由可达、能返回结构化错误；**换新模块要重启应用**，重启后按上面 `dry-run` 两步走即可 |
+| **模型那一环（`POST /process`）** | ✅ 17.4 s 返回 `ok:true`：归类 9 / 健康事实 1 / 财务候选 0 / 专题建议 1 —— 与输入清单逐条对齐 |
+| **落盘 + 重建** | ✅ `applied:true`，6 个重建脚本 `apply-update-topics` / `build-kb` / `build-specialties` / `map-specialties` / `build-health-profile` / `sync-knowledge` **全部 exit 0** |
+| 落盘物核对 | ✅ `final-topics.json` 里 2540–2548 全部有了归属；`health-facts\manual-2026-10-11.json`（1 条「吃辣后胃疼／用户自述」）；`specialties-map.json` 1 条；`sync\logs\extract-2026-10-11.md` |
+| `kb.mjs doctor` | ✅ exit 0（jsonl 2549 / catalog 2549 / md 2549） |
+
+**这一轮实测暴露并修掉的 4 个静默失效**（都写进提交信息）：① 收件箱漏拷 `update-new-items.tsv`，
+模型被告知"本轮没有新会话"；② 校验器在 dry-run 下拿磁盘旧状态判专题建议，4 条全被误拒；
+③ `pipeline.json` 里单反斜杠是非法 JSON，整个文件解析失败 → 路径**静默**回落默认值；
+④ `sync-knowledge.mjs` 从数据目录推健康控制台路径，而控制台已搬到 `控制台中心\`。
+另修 `kb.mjs doctor` 的一处误报（文件名含 `.md` 被截断 → 假"悬空链接"）。
+
+> ⚠️ **本轮不改一件事**：`/process` 应用后**不清空** `update-new-items.json`（那是段 1 的产物，
+> 由下一次同步覆盖）。所以连按两次「跑并落盘」会把同一批条目再送一遍 —— 归类幂等（已在话题里的跳过），
+> 健康事实会再落一份新的 `manual-<今天>.json`。要连跑就用「只校验」。**待办**：给 apply 加"本轮已处理"
+> 标记，属方案阶段 3 的范围。
 
 ## 二、文件
 
