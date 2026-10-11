@@ -583,3 +583,172 @@ test('the knowledge base writer refuses to escape its directory', async () => {
   assert.throws(() => resolveInside('D:\\kb', 'C:\\Windows\\evil.md'), /路径越界/)
   assert.ok(resolveInside('D:\\kb', 'conversations/ok.md').startsWith('D:\\kb'))
 })
+
+// ---------------------------------------------------------------------------
+// 全量回填：zip 读取 / 消息树解析 / 端到端
+// ---------------------------------------------------------------------------
+
+const { crc32, parseExportConversations, readExport, readZipEntries } = await import('../lib/export.js')
+
+/** 手工造一个 stored(0) 的 zip —— 只依赖规范，不依赖被测代码的压缩分支。 */
+function buildZip(entries) {
+  const parts = []
+  const central = []
+  let offset = 0
+  for (const entry of entries) {
+    const name = Buffer.from(entry.name, 'utf8')
+    const data = Buffer.from(entry.data)
+    const crc = crc32(data)
+    const local = Buffer.alloc(30)
+    local.writeUInt32LE(0x04034b50, 0)
+    local.writeUInt16LE(20, 4)
+    local.writeUInt16LE(0, 6)
+    local.writeUInt16LE(0, 8)
+    local.writeUInt32LE(crc, 14)
+    local.writeUInt32LE(data.length, 18)
+    local.writeUInt32LE(data.length, 22)
+    local.writeUInt16LE(name.length, 26)
+    parts.push(local, name, data)
+    const cd = Buffer.alloc(46)
+    cd.writeUInt32LE(0x02014b50, 0)
+    cd.writeUInt16LE(20, 4)
+    cd.writeUInt16LE(20, 6)
+    cd.writeUInt32LE(crc, 16)
+    cd.writeUInt32LE(data.length, 20)
+    cd.writeUInt32LE(data.length, 24)
+    cd.writeUInt16LE(name.length, 28)
+    cd.writeUInt32LE(offset, 42)
+    central.push(Buffer.concat([cd, name]))
+    offset += local.length + name.length + data.length
+  }
+  const centralBuf = Buffer.concat(central)
+  const eocd = Buffer.alloc(22)
+  eocd.writeUInt32LE(0x06054b50, 0)
+  eocd.writeUInt16LE(entries.length, 8)
+  eocd.writeUInt16LE(entries.length, 10)
+  eocd.writeUInt32LE(centralBuf.length, 12)
+  eocd.writeUInt32LE(offset, 16)
+  return Buffer.concat([...parts, centralBuf, eocd])
+}
+
+/** 一条真实形状的导出会话：助手回复与提问**同一时间戳**（正是那个坑）。 */
+function makeExportConversation({ id, title, turns }) {
+  const mapping = { root: { id: 'root', parent: null, children: [], message: null } }
+  let parent = 'root'
+  let clock = Date.parse('2026-01-01T00:00:00+00:00')
+  turns.forEach((turn, index) => {
+    const at = new Date((clock += 60_000)).toISOString().replace('Z', '+00:00')
+    const userId = `u${index}`
+    mapping[userId] = { id: userId, parent, children: [], message: { model: null, inserted_at: at, fragments: [{ type: 'REQUEST', content: turn.user }] } }
+    mapping[parent].children.push(userId)
+    const assistantId = `a${index}`
+    mapping[assistantId] = {
+      id: assistantId,
+      parent: userId,
+      children: [],
+      message: { model: 'deepseek-chat', inserted_at: at, fragments: [{ type: 'THINK', content: turn.thinking ?? '' }, { type: 'RESPONSE', content: turn.assistant }] },
+    }
+    mapping[userId].children.push(assistantId)
+    parent = assistantId
+  })
+  return { id, title, inserted_at: '2026-01-01T00:00:00+00:00', updated_at: '2026-01-01T01:00:00+00:00', mapping }
+}
+
+test('zip reader returns file entries, skips directories and rejects a corrupted entry', () => {
+  const zip = buildZip([
+    { name: 'dir/', data: Buffer.alloc(0) },
+    { name: 'conversations.json', data: Buffer.from('[]', 'utf8') },
+    { name: 'user.json', data: Buffer.from('{"id":"x"}', 'utf8') },
+  ])
+  const entries = readZipEntries(zip)
+  assert.deepEqual([...entries.keys()].sort(), ['conversations.json', 'user.json'])
+  assert.equal(entries.get('user.json').toString('utf8'), '{"id":"x"}')
+
+  const broken = Buffer.from(zip)
+  broken[broken.indexOf(Buffer.from('{"id":"x"}')[0])] ^= 0xff
+  assert.throws(() => readZipEntries(broken), /CRC32 校验失败/)
+})
+
+test('export parsing keeps the assistant leaf even when the timestamps tie (the documented trap)', () => {
+  const records = parseExportConversations([
+    makeExportConversation({ id: 'c1', title: '牙齿', turns: [{ user: '拔牙后能吃什么', assistant: '先别吃辣的。', thinking: '创口' }] }),
+  ])
+  assert.equal(records.length, 1)
+  assert.equal(records[0].messages.length, 2)
+  assert.equal(records[0].messages.at(-1).role, 'assistant')
+  assert.equal(records[0].messages.at(-1).text, '先别吃辣的。')
+  assert.equal(records[0].messages.at(-1).thinking, '创口')
+  assert.equal(records[0].turns, 1)
+})
+
+test('backfill walks export_all → poll → download → merge, and is idempotent', async () => {
+  const { root, kbDir } = makeRoot()
+  const credentials = makeCredentials({ DEEPSEEK_WEB_TOKEN: TOKEN_VALUE })
+  const conversations = [
+    makeExportConversation({ id: 'e1', title: '拔牙', turns: [{ user: '拔牙后能吃什么', assistant: '先别吃辣的。' }] }),
+    makeExportConversation({ id: 'e2', title: '增重', turns: [{ user: '怎么增重', assistant: '多吃 + 练。' }] }),
+  ]
+  const zip = buildZip([
+    { name: 'conversations.json', data: Buffer.from(JSON.stringify(conversations), 'utf8') },
+    { name: 'user.json', data: Buffer.from('{"id":"u"}', 'utf8') },
+  ])
+  let statusCalls = 0
+  const seen = []
+  const fetchImpl = async (url) => {
+    const text = String(url)
+    seen.push(text)
+    if (text.includes('export_all')) return { status: 200, ok: true, json: async () => ({ code: 0 }) }
+    if (text.includes('download_export_history')) {
+      statusCalls += 1
+      return {
+        status: 200,
+        ok: true,
+        json: async () => (statusCalls < 2
+          ? { code: 0, data: { biz_code: 0, biz_data: { status: 'PENDING', exported_at: null, history_download_url: null } } }
+          : { code: 0, data: { biz_code: 0, biz_data: { status: 'FINISHED', exported_at: 1_760_000_000, history_download_url: 'https://cdn.example/export.zip' } } }),
+      }
+    }
+    if (text.startsWith('https://cdn.example/')) {
+      return { status: 200, ok: true, arrayBuffer: async () => zip }
+    }
+    return { status: 404, ok: false, json: async () => ({}) }
+  }
+
+  const host = boot({ root, kbDir, credentials, fetchImpl, config: { root, kbDir, configFile: MISSING_CONFIG, fetchImpl, exportIntervalMs: 1, exportAttempts: 5 } })
+  const started = await request(host, { method: 'POST', url: `${PREFIX}/backfill` })
+  assert.equal(started.status, 202)
+  assert.equal(started.json.ok, true)
+
+  let status = null
+  for (let i = 0; i < 200; i += 1) {
+    const res = await request(host, { url: `${PREFIX}/status` })
+    status = res.json
+    if (status.backfill && (status.backfill.phase === 'done' || status.backfill.phase === 'failed')) break
+    await new Promise((done) => setTimeout(done, 10))
+  }
+  assert.equal(status.backfill.phase, 'done', `phase=${status.backfill.phase} fatal=${status.backfill.fatal}`)
+  assert.equal(status.backfill.exportConversations, 2)
+  assert.equal(status.backfill.added, 2)
+  assert.equal(status.backfill.attempts, 2)
+  assert.ok(status.backfill.zipBytes > 0)
+  assert.equal(seen.some((u) => u.includes('export_all')), true)
+  assert.equal(seen.some((u) => u.startsWith('https://cdn.example/')), true)
+
+  const jsonl = readFileSync(join(kbDir, 'conversations.jsonl'), 'utf8').trim().split('\n')
+  assert.equal(jsonl.length, 2)
+  assert.equal(JSON.parse(jsonl[0]).messages.at(-1).role, 'assistant')
+
+  // 再回填一次：同样的内容不该重复新增
+  statusCalls = 0
+  await request(host, { method: 'POST', url: `${PREFIX}/backfill` })
+  for (let i = 0; i < 200; i += 1) {
+    const res = await request(host, { url: `${PREFIX}/status` })
+    status = res.json
+    if (status.backfill && status.backfill.phase === 'done' && status.backfill.finishedAt !== null && status.backfill.attempts === 2) break
+    await new Promise((done) => setTimeout(done, 10))
+    if (i === 199) assert.fail('second backfill did not finish')
+  }
+  assert.equal(status.backfill.added, 0)
+  assert.equal(status.backfill.skipped, 2)
+  assert.equal(readFileSync(join(kbDir, 'conversations.jsonl'), 'utf8').trim().split('\n').length, 2)
+})
