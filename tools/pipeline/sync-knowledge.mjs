@@ -9,11 +9,13 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { HEALTH_DIR, PIPE_DIR } from './_paths.mjs';
+import { HEALTH_DIR, HEALTH_CONSOLE_DIR, PIPE_DIR } from './_paths.mjs';
 
 const HEALTH = resolve(HEALTH_DIR);
-// health-console 仍在 D:\dsh\控制台中心\health-console（插件外的既有控制台）。
-const HEALTH_CONSOLE_DIR = resolve(PIPE_DIR, '..', '..', '..', 'health-console');
+// health-console 的位置**由配置决定**（别再按数据目录推：2026-10-12 它被搬到
+// `D:\dsh\控制台中心\health-console`，推导式路径会静默失效 —— 它只是"顺带刷新一页总览"，
+// 失败也不影响档案，所以坏了很久也不会有人发现）。
+const HEALTH_CONSOLE = resolve(HEALTH_CONSOLE_DIR);
 const KNOW = join(HEALTH, 'knowledge.json');
 const CORR = join(HEALTH, 'corrections.json');
 const FACTS = join(HEALTH, 'facts.json');
@@ -68,7 +70,7 @@ writeFileSync(join(HEALTH, 'KNOWLEDGE.md'), L.join('\n'), 'utf8');
 console.log(`KNOWLEDGE.md: ${total} 条（改过 ${edited.length}，存疑 ${flagged.length}）`);
 
 // ---------- 3. 顺带刷新「一页总览」 ----------
-const ov = join(HEALTH_CONSOLE_DIR, 'make-overview.mjs');
+const ov = join(HEALTH_CONSOLE, 'make-overview.mjs');
 if (existsSync(ov)) {
   const r2 = spawnSync(process.execPath, [ov, HEALTH], { encoding: 'utf8', cwd: dirname(ov) });
   const line = (r2.stdout ?? '').split('\n')[1];

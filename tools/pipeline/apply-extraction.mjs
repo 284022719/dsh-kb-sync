@@ -156,10 +156,13 @@ if (existsSync(spFile)) {
   if (sp) {
     const sugg = sp.suggestions ?? [];
     if (sugg.length) {
-      // 校验 parent 是否与该 idx 的话题一致
-      const topicsOut = existsSync(UPDATE_TOPICS)
-        ? JSON.parse(readFileSync(UPDATE_TOPICS, 'utf8')).assignments ?? []
-        : [];
+      // 校验 parent 是否与该 idx 的话题一致。
+      // ⚠️ 2026-10-12 踩过：这里原来只读磁盘上的 UPDATE_TOPICS，而 dry-run **不写**那个文件，
+      // 于是本轮模型给的 4 条专题建议全被误判成「话题 undefined ≠ 父话题」并丢弃 —— 校验器
+      // 拿旧状态去判新产出，看起来只是"建议被拒"，其实判据本身失效。本轮产出优先。
+      const thisRound = existsSync(topicsFile) ? rd(topicsFile)?.assignments ?? null : null;
+      const live = existsSync(UPDATE_TOPICS) ? JSON.parse(readFileSync(UPDATE_TOPICS, 'utf8')).assignments ?? [] : [];
+      const topicsOut = thisRound ?? live;
       const topicOf = new Map(topicsOut.map((a) => [a.idx, a.topic]));
       const specKeys = new Map(
         readFileSync(join(INBOX, 'specialty-keys.tsv'), 'utf8')

@@ -54,6 +54,10 @@ export const TOKEN = tokenRaw === null ? join(IMPORT_DIR, '.token') : resolve(to
 export const HEALTH_DIR = pick('DSH_HEALTH_DIR', 'healthDir', join(resolve(PLUGIN_ROOT, '..'), 'health'));
 export const FIN_DIR = pick('DSH_FINANCE_DIR', 'financeDir', join(resolve(PLUGIN_ROOT, '..'), 'finance'));
 export const KB_DIR = pick('DSH_KB_DIR', 'kbDir', join(PLUGIN_ROOT, 'data', 'kb'));
+// 健康控制台（`make-overview.mjs` / `make-snapshot.mjs` 所在）。它被别的会话搬过家
+// （2026-10-12：`D:\dsh\health-console` → `D:\dsh\控制台中心\health-console`），所以
+// **别从数据目录推**：显式配置优先，兜底才是 `<插件>\..\health-console`。
+export const HEALTH_CONSOLE_DIR = pick('DSH_HEALTH_CONSOLE_DIR', 'healthConsoleDir', join(resolve(PLUGIN_ROOT, '..'), 'health-console'));
 export const DSH_HOME = resolve(process.env.DSH_KB_SYNC_DSH_HOME ?? join(IMPORT_DIR, '.dsh-home'));
 
 // —— 管线数据子目录（原 `deepseek-import\` 下的那些）——

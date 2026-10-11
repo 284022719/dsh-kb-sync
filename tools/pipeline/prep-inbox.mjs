@@ -84,6 +84,21 @@ if (existsSync(itemsSrc)) {
   log.push('未找到 update-new-items.json，按 0 条处理');
 }
 
+// 4b) 清单的 TSV 版 —— **这是提示词里真正喂给模型的那张表**。
+// ⚠️ 2026-10-12 踩过：这一步曾经漏掉，于是收件箱里只有 .json、没有 .tsv，
+// 而 extract-prompt 读的是 update-new-items.tsv；模型据此认为"本轮没有新增会话"、
+// 返回空 assignments，apply 再以「缺少 update-topics.json」拒收 —— 全程不报错，
+// 只是安静地什么都没归类。判据：收件箱里 .tsv 与 .json 的条数必须一致。
+const itemsTsv = join(WS, 'update-new-items.tsv');
+if (existsSync(itemsTsv)) {
+  copyFileSync(itemsTsv, join(INBOX, 'update-new-items.tsv'));
+  const rows = readFileSync(itemsTsv, 'utf8').split(/\r?\n/).filter((l) => l.trim() !== '').length - 1;
+  log.push(`归类输入表：${rows} 行`);
+  if (rows !== itemCount) log.push(`⚠️ update-new-items.tsv 有 ${rows} 行，与清单的 ${itemCount} 条不一致（不是本轮生成的那份？）`);
+} else {
+  log.push('⚠️ 缺少 update-new-items.tsv（归类任务会没有输入）');
+}
+
 // 5) 话题清单
 const tk = join(WS, 'update-topic-keys.tsv');
 if (existsSync(tk)) copyFileSync(tk, join(INBOX, 'update-topic-keys.tsv'));
