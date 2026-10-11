@@ -1,9 +1,0 @@
-[2026-10-12T04:03:04] trigger start (pipe=D:\dsh\dsh-kb-sync\tools\pipeline) 
-POST http://127.0.0.1:19387/__dsh-kb-sync/pipeline
-  token    ok                   0 ms  完成
-  recon    ok                1658 ms  完成
-  fetch    ok                1453 ms  完成
-  process  ok                1554 ms  归类 0 / 健康 0 / 财务候选 0（仅校验）
-  doctor   ok                1879 ms  完成
-chain ok=True  reason=全部阶段完成
-[2026-10-12T04:03:12] trigger done rc=0 

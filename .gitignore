@@ -7,3 +7,9 @@ data/
 # 本地配置：插件自己的（config.json）与管线的（tools/pipeline/pipeline.json，含本机绝对路径）
 config.json
 tools/pipeline/pipeline.json
+
+# 触发器的运行时状态：插件按当前监听端口写 trigger.json / trigger-source.json，
+# 计划任务每次运行又把结果追加进 trigger.log —— 三个都是本机事实，不是源码。
+tools/pipeline/trigger.json
+tools/pipeline/trigger-source.json
+tools/pipeline/trigger.log
