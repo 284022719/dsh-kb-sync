@@ -209,7 +209,7 @@ test('status reports paths, token age from mtime, last sync and newest log', asy
 })
 
 test('an unconfigured root reports a message instead of failing', async () => {
-  const host = boot({ config: { configFile: MISSING_CONFIG } })
+  const host = boot({ config: { configFile: MISSING_CONFIG, localConfigFile: MISSING_CONFIG } })
   const { status, json } = await request(host, { url: `${PREFIX}/status` })
   assert.equal(status, 200)
   assert.equal(json.configured, false)
@@ -328,15 +328,18 @@ test('unknown sub-paths 404 and wrong methods 405', async () => {
 
 test('resolveSettings discovers the windows default script and honours overrides', () => {
   const { root } = makeRoot()
-  const discovered = resolveSettings({ root, configFile: MISSING_CONFIG })
+  const discovered = resolveSettings({ root, configFile: MISSING_CONFIG, localConfigFile: MISSING_CONFIG })
   assert.equal(discovered.syncScript, join(root, 'sync', 'sync-daily.cmd'))
-  assert.equal(discovered.kbDir, join(root, '..', 'knowledge-base'))
+  // 知识库（以及默认的体检目录）都在插件自己的 data/kb 下，不再推导到 ../knowledge-base
+  assert.equal(discovered.outDir, join(PLUGIN_ROOT, 'data', 'kb'))
+  assert.equal(discovered.kbDir, join(PLUGIN_ROOT, 'data', 'kb'))
+  assert.equal(discovered.doctorScript, join(PLUGIN_ROOT, 'data', 'kb', 'tools', 'kb.mjs'))
 
-  const override = resolveSettings({ root, kbDir: join(root, 'kb-elsewhere'), tokenOldDays: 7, configFile: MISSING_CONFIG })
+  const override = resolveSettings({ root, kbDir: join(root, 'kb-elsewhere'), tokenOldDays: 7, configFile: MISSING_CONFIG, localConfigFile: MISSING_CONFIG })
   assert.equal(override.kbDir, join(root, 'kb-elsewhere'))
   assert.equal(override.tokenOldDays, 7)
 
-  assert.equal(resolveSettings({ configFile: MISSING_CONFIG }).root, null)
+  assert.equal(resolveSettings({ configFile: MISSING_CONFIG, localConfigFile: MISSING_CONFIG }).root, null)
 })
 
 test('the settings file supplies values the loader config omits, and loader config wins', () => {
@@ -344,19 +347,19 @@ test('the settings file supplies values the loader config omits, and loader conf
   const file = join(root, 'settings.json')
   writeFileSync(file, JSON.stringify({ root, tokenOldDays: 5 }))
 
-  const fromFile = resolveSettings({ configFile: file })
+  const fromFile = resolveSettings({ configFile: file, localConfigFile: MISSING_CONFIG })
   assert.equal(fromFile.root, root)
   assert.equal(fromFile.tokenOldDays, 5)
   assert.equal(fromFile.configFileUsed, true)
   assert.equal(fromFile.syncScript, join(root, 'sync', 'sync-daily.cmd'))
 
   const other = makeRoot()
-  const overridden = resolveSettings({ configFile: file, root: other.root, tokenOldDays: 30 })
+  const overridden = resolveSettings({ configFile: file, root: other.root, tokenOldDays: 30, localConfigFile: MISSING_CONFIG })
   assert.equal(overridden.root, other.root)
   assert.equal(overridden.tokenOldDays, 30)
 
   writeFileSync(file, '{ this is not json')
-  const broken = resolveSettings({ configFile: file })
+  const broken = resolveSettings({ configFile: file, localConfigFile: MISSING_CONFIG })
   assert.equal(broken.root, null)
   assert.equal(broken.configFileUsed, false)
 })
@@ -383,7 +386,7 @@ test('by default the knowledge base lives inside the plugin folder, and its conf
 
 test('collectStatus never reads the token file contents', () => {
   const { root, kbDir } = makeRoot()
-  const settings = resolveSettings({ root, kbDir, configFile: MISSING_CONFIG })
+  const settings = resolveSettings({ root, kbDir, configFile: MISSING_CONFIG, localConfigFile: MISSING_CONFIG })
   const status = collectStatus(settings, { running: false, startedAt: null, lastResult: null })
   assert.equal(status.token.present, true)
   const serialized = JSON.stringify(status)

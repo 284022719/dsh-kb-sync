@@ -76,7 +76,7 @@ dsh plugin --profile web add github:<owner>/dsh-kb-sync
     # lastSyncFile: '...\sync\LAST-SYNC.txt'
     # tokenFile:    '...\.token'                # 只读 mtime，不读内容
     # tokenOldDays: 21                          # 超过就标「token 偏旧」
-    # kbDir:        '...\knowledge-base'        # 体检脚本的默认落点
+    # kbDir:        '...\data\kb'               # 体检脚本的落点（默认＝知识库目录本身）
     # doctorScript: '...\tools\kb.mjs'          # 任何可执行脚本都行
     # doctorArgs:   ['doctor']
     # nodeBin: 'node'
