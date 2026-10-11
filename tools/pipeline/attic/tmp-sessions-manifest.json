@@ -1,0 +1,223 @@
+{
+ "cwd": "D:\\dsh\\knowledge-base",
+ "preset": "standard",
+ "generatedAt": "2026-09-23T13:02:57.673Z",
+ "sessions": [
+  {
+   "id": "session-f917e276-1b16-490c-adf1-5a7bb6ec7780",
+   "title": "【知识库】健康医疗",
+   "topic": "健康医疗",
+   "key": "01-健康医疗",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-f917e276-1b16-490c-adf1-5a7bb6ec7780",
+   "bytes": 4937,
+   "events": 11
+  },
+  {
+   "id": "session-6724c71a-94ef-45c7-ae87-cc781821fb01",
+   "title": "【知识库】数码硬件与网络",
+   "topic": "数码硬件与网络",
+   "key": "02-数码硬件与网络",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-6724c71a-94ef-45c7-ae87-cc781821fb01",
+   "bytes": 5222,
+   "events": 11
+  },
+  {
+   "id": "session-7e9afd05-3af7-4a1c-be1e-9f9788d488bd",
+   "title": "【知识库】历史文化",
+   "topic": "历史文化",
+   "key": "03-历史文化",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-7e9afd05-3af7-4a1c-be1e-9f9788d488bd",
+   "bytes": 5296,
+   "events": 11
+  },
+  {
+   "id": "session-b944c95a-a887-4f54-bc50-1cabd26d6ad0",
+   "title": "【知识库】AI与编程开发",
+   "topic": "AI与编程开发",
+   "key": "04-AI与编程开发",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-b944c95a-a887-4f54-bc50-1cabd26d6ad0",
+   "bytes": 5081,
+   "events": 11
+  },
+  {
+   "id": "session-ed612b3a-a086-43a2-9ca1-a0c9bdc08556",
+   "title": "【知识库】情感心理",
+   "topic": "情感心理",
+   "key": "05-情感心理",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-ed612b3a-a086-43a2-9ca1-a0c9bdc08556",
+   "bytes": 4904,
+   "events": 11
+  },
+  {
+   "id": "session-361d1825-15bb-4f60-a1fc-f8093a035fed",
+   "title": "【知识库】语言文学与翻译",
+   "topic": "语言文学与翻译",
+   "key": "06-语言文学与翻译",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-361d1825-15bb-4f60-a1fc-f8093a035fed",
+   "bytes": 4810,
+   "events": 11
+  },
+  {
+   "id": "session-437b3e56-b76c-46d9-af34-e6d1a92be4d0",
+   "title": "【知识库】社会民生与政务",
+   "topic": "社会民生与政务",
+   "key": "07-社会民生与政务",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-437b3e56-b76c-46d9-af34-e6d1a92be4d0",
+   "bytes": 5734,
+   "events": 11
+  },
+  {
+   "id": "session-11c82205-61e3-40af-951c-eb31940d972c",
+   "title": "【知识库】3D打印与DIY",
+   "topic": "3D打印与DIY",
+   "key": "08-3D打印与DIY",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-11c82205-61e3-40af-951c-eb31940d972c",
+   "bytes": 4964,
+   "events": 11
+  },
+  {
+   "id": "session-2515c45f-b810-4e8a-bf28-a883d7ff2c82",
+   "title": "【知识库】投资理财与商业",
+   "topic": "投资理财与商业",
+   "key": "09-投资理财与商业",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-2515c45f-b810-4e8a-bf28-a883d7ff2c82",
+   "bytes": 4763,
+   "events": 11
+  },
+  {
+   "id": "session-ba0f6993-4664-474c-a307-2344023b215a",
+   "title": "【知识库】影视综艺与文娱",
+   "topic": "影视综艺与文娱",
+   "key": "10-影视综艺与文娱",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-ba0f6993-4664-474c-a307-2344023b215a",
+   "bytes": 4582,
+   "events": 11
+  },
+  {
+   "id": "session-f1efa433-991e-474f-84e0-6e31bd17a621",
+   "title": "【知识库】编程与网站开发",
+   "topic": "编程与网站开发",
+   "key": "11-编程与网站开发",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-f1efa433-991e-474f-84e0-6e31bd17a621",
+   "bytes": 4722,
+   "events": 11
+  },
+  {
+   "id": "session-6a32397c-d45e-49ed-b823-a3d648022291",
+   "title": "【知识库】游戏与二次元",
+   "topic": "游戏与二次元",
+   "key": "12-游戏与二次元",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-6a32397c-d45e-49ed-b823-a3d648022291",
+   "bytes": 5121,
+   "events": 11
+  },
+  {
+   "id": "session-7fb39484-65d5-4094-8874-a06c2e1ddd66",
+   "title": "【知识库】生活常识与办事",
+   "topic": "生活常识与办事",
+   "key": "13-生活常识与办事",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-7fb39484-65d5-4094-8874-a06c2e1ddd66",
+   "bytes": 4457,
+   "events": 11
+  },
+  {
+   "id": "session-3c66ff67-cd30-471c-9c97-660c9b70e0a0",
+   "title": "【知识库】饮食健身与形象",
+   "topic": "饮食健身与形象",
+   "key": "14-饮食健身与形象",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-3c66ff67-cd30-471c-9c97-660c9b70e0a0",
+   "bytes": 4491,
+   "events": 11
+  },
+  {
+   "id": "session-92a1c9b3-cb76-4a7a-858c-c04ab5bbfb7a",
+   "title": "【知识库】魔兽世界与游戏",
+   "topic": "魔兽世界与游戏",
+   "key": "15-魔兽世界与游戏",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-92a1c9b3-cb76-4a7a-858c-c04ab5bbfb7a",
+   "bytes": 3538,
+   "events": 11
+  },
+  {
+   "id": "session-608aa4d9-dac4-43a8-9a3f-25d3592bb2a9",
+   "title": "【知识库】百科杂谈",
+   "topic": "百科杂谈",
+   "key": "16-百科杂谈",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-608aa4d9-dac4-43a8-9a3f-25d3592bb2a9",
+   "bytes": 3262,
+   "events": 11
+  },
+  {
+   "id": "session-1216b3a3-7020-4dea-ae3b-9b5e974d4ded",
+   "title": "【知识库】网络热词与梗文化",
+   "topic": "网络热词与梗文化",
+   "key": "17-网络热词与梗文化",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-1216b3a3-7020-4dea-ae3b-9b5e974d4ded",
+   "bytes": 2951,
+   "events": 11
+  },
+  {
+   "id": "session-f5f96869-5bf0-4873-8b46-7c0ef7f5a725",
+   "title": "【知识库】家居装修与居住",
+   "topic": "家居装修与居住",
+   "key": "18-家居装修与居住",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-f5f96869-5bf0-4873-8b46-7c0ef7f5a725",
+   "bytes": 3135,
+   "events": 11
+  },
+  {
+   "id": "session-3af2d303-0e4a-427b-aad4-68b8f592b2c2",
+   "title": "【知识库】宠物园艺与自然",
+   "topic": "宠物园艺与自然",
+   "key": "19-宠物园艺与自然",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-3af2d303-0e4a-427b-aad4-68b8f592b2c2",
+   "bytes": 3067,
+   "events": 11
+  },
+  {
+   "id": "session-29e103c5-de85-4c88-b6c6-061dfbb337bb",
+   "title": "【知识库】旅行与地理",
+   "topic": "旅行与地理",
+   "key": "20-旅行与地理",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-29e103c5-de85-4c88-b6c6-061dfbb337bb",
+   "bytes": 2869,
+   "events": 11
+  },
+  {
+   "id": "session-15136999-6674-4a5f-82ef-728721eb5457",
+   "title": "【知识库】职场求职与考试",
+   "topic": "职场求职与考试",
+   "key": "21-职场求职与考试",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-15136999-6674-4a5f-82ef-728721eb5457",
+   "bytes": 2442,
+   "events": 11
+  },
+  {
+   "id": "session-651b6da6-47e5-4d37-8555-423d11e4928c",
+   "title": "【知识库】法律与军事",
+   "topic": "法律与军事",
+   "key": "22-法律与军事",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-651b6da6-47e5-4d37-8555-423d11e4928c",
+   "bytes": 2929,
+   "events": 11
+  },
+  {
+   "id": "session-b28dc708-c0cc-49d0-a747-89ced459acc0",
+   "title": "【知识库】办公文档",
+   "topic": "办公文档",
+   "key": "23-办公文档",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-b28dc708-c0cc-49d0-a747-89ced459acc0",
+   "bytes": 2730,
+   "events": 11
+  },
+  {
+   "id": "session-20b1cab6-822c-4be8-9a11-f20dd1798fb3",
+   "title": "【知识库】汽车与出行",
+   "topic": "汽车与出行",
+   "key": "24-汽车与出行",
+   "dir": "D:\\dsh\\deepseek-import\\tmp-sessions\\--D-dsh-knowledge-base--\\session-20b1cab6-822c-4be8-9a11-f20dd1798fb3",
+   "bytes": 2778,
+   "events": 11
+  }
+ ]
+}

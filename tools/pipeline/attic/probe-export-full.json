@@ -1,0 +1,20 @@
+{
+  "fragHist": {
+    "REQUEST": 8463,
+    "RESPONSE": 8835,
+    "THINK": 11162,
+    "SEARCH": 1710,
+    "FILE": 474,
+    "TOOL_SEARCH": 2173,
+    "TOOL_OPEN": 9391,
+    "TOOL_FIND": 17
+  },
+  "modelHist": {
+    "deepseek-chat": 788,
+    "deepseek-reasoner": 16920
+  },
+  "nodes": 20154,
+  "nodesWithMsg": 17708,
+  "branchPoints": 688,
+  "totalChars": 22339836
+}

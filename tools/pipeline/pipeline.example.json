@@ -1,0 +1,14 @@
+{
+  "//": "管线的路径唯一来源。复制成 pipeline.json（同目录）后按你的机器改；本文件是模板，不入配置。",
+  "//优先级": "环境变量（DSH_IMPORT_DIR / DSH_KB_SYNC_TOKEN_FILE / DSH_HEALTH_DIR / DSH_FINANCE_DIR / DSH_KB_DIR）> pipeline.json > 同级默认",
+  "//importDir": "管线运行时数据根：knowledge\\ raw\\ health-*\\ finance-digest\\ topics\\ sync\\{inbox,out,logs}\\ .dsh-home\\ 等。默认 <插件>\\data\\import",
+  "importDir": "D:\\path\\to\\dsh-kb-sync\\data\\import",
+  "//tokenFile": "网页端 Bearer token 文件。**放仓库外**（默认 %USERPROFILE%\\.dsh\\.dsh-kb-sync-token），凭据不进工作树",
+  "tokenFile": "C:\\Users\\<you>\\.dsh\\.dsh-kb-sync-token",
+  "//healthDir": "健康档案目录（build-health-profile.mjs 的输出、scan-stale.mjs 的输入）",
+  "healthDir": "D:\\path\\to\\health",
+  "//financeDir": "财务台账目录（apply-extraction.mjs 只往 <它>\\data\\candidates.jsonl 追加候选）",
+  "financeDir": "D:\\path\\to\\finance",
+  "//kbDir": "知识库目录（build-kb.mjs --out 的默认值）",
+  "kbDir": "D:\\path\\to\\dsh-kb-sync\\data\\kb"
+}

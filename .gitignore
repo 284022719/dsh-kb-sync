@@ -1,3 +1,9 @@
-# 知识库数据（默认落在插件文件夹内的 data/kb）与本地配置不入库
+# 数据与本地配置不入库（2026-10-12 起也覆盖管线）
+#
+# data/ 现在同时装知识库（data/kb）与管线运行时数据（data/import：对话语料、健康事实、
+# 财务候选、日志、.dsh-home 里的凭据与自动化会话）—— 一律不进仓库。
 data/
+
+# 本地配置：插件自己的（config.json）与管线的（tools/pipeline/pipeline.json，含本机绝对路径）
 config.json
+tools/pipeline/pipeline.json

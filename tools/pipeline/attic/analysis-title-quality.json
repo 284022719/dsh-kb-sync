@@ -1,0 +1,1091 @@
+{
+ "buckets": {
+  "0.00-0.20": 108,
+  "0.20-0.40": 178,
+  "0.40-0.60": 465,
+  "0.60-0.80": 863,
+  "0.80-1.00": 826
+ },
+ "low": [
+  {
+   "idx": 166,
+   "title": "CSS, HTML, JavaScript 问题修复与优化",
+   "ratio": 0,
+   "grams": 26,
+   "msgs": 1,
+   "chars": 0,
+   "first": "",
+   "file": "conversations/20250324-CSS, HTML, JavaScript 问题修复与优化-be6c1308.md"
+  },
+  {
+   "idx": 218,
+   "title": "肖家河街道专职工作者绩效考核方案",
+   "ratio": 0,
+   "grams": 15,
+   "msgs": 1,
+   "chars": 2,
+   "first": "总结",
+   "file": "conversations/20250403-肖家河街道专职工作者绩效考核方案-a4398155.md"
+  },
+  {
+   "idx": 260,
+   "title": "深夜不眠的自我放松与睡眠建议",
+   "ratio": 0,
+   "grams": 13,
+   "msgs": 1,
+   "chars": 29,
+   "first": "明天要上班，已经很晚了，但是不想睡，但是不睡也不知道做什么",
+   "file": "conversations/20250429-深夜不眠的自我放松与睡眠建议-5b2cb353.md"
+  },
+  {
+   "idx": 275,
+   "title": "饮食与肠道气体问题分析",
+   "ratio": 0,
+   "grams": 10,
+   "msgs": 1,
+   "chars": 37,
+   "first": "吃了牛奶、水果燕麦、蛋白粉和碳水能量米糊，然后一直放臭屁。可能的原因有哪些",
+   "file": "conversations/20250512-饮食与肠道气体问题分析-497e61da.md"
+  },
+  {
+   "idx": 322,
+   "title": "醉酒者睡眠难醒原因及应对",
+   "ratio": 0,
+   "grams": 11,
+   "msgs": 1,
+   "chars": 16,
+   "first": "喝醉了的人睡着后会不容易被叫醒吗",
+   "file": "conversations/20250526-醉酒者睡眠难醒原因及应对-6dd99a1e.md"
+  },
+  {
+   "idx": 1557,
+   "title": "助手友好回应引导提问",
+   "ratio": 0,
+   "grams": 9,
+   "msgs": 5,
+   "chars": 3431,
+   "first": "A1 MINI 为什么要封箱",
+   "file": "conversations/20260512-助手友好回应引导提问-199bcd2a.md"
+  },
+  {
+   "idx": 1569,
+   "title": "双因素认证解释",
+   "ratio": 0,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 30,
+   "first": "two-factor authentication是什么意思",
+   "file": "conversations/20260515-双因素认证解释-3c2f9824.md"
+  },
+  {
+   "idx": 1591,
+   "title": "反派角色含义解答",
+   "ratio": 0,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 10,
+   "first": "villain是什么",
+   "file": "conversations/20260520-反派角色含义解答-eafb910b.md"
+  },
+  {
+   "idx": 1595,
+   "title": "江湖黑话翻译解读",
+   "ratio": 0,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 21,
+   "first": "天牌地牌这里尖果少，又熟，不知道改路行不行",
+   "file": "conversations/20260522-江湖黑话翻译解读-b8dcc589.md"
+  },
+  {
+   "idx": 1596,
+   "title": "如何区分EBITDA NOI NPI 知乎",
+   "ratio": 0,
+   "grams": 20,
+   "msgs": 1,
+   "chars": 15,
+   "first": "手机顶部。显示5ga是什么意思",
+   "file": "conversations/20260521-如何区分EBITDA NOI NPI 知乎-7aebd07a.md"
+  },
+  {
+   "idx": 1647,
+   "title": "人生归宿源于内心渴望",
+   "ratio": 0,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 2,
+   "first": "总结",
+   "file": "conversations/20260529-人生归宿源于内心渴望-55a70ad3.md"
+  },
+  {
+   "idx": 1693,
+   "title": "全身出油综合调理方案",
+   "ratio": 0,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 27,
+   "first": "我是男的，33岁，住在成都。头发，脸，背都很油怎么办啊",
+   "file": "conversations/20260603-全身出油综合调理方案-a5133d9d.md"
+  },
+  {
+   "idx": 1702,
+   "title": "狗对碗的情感联系",
+   "ratio": 0,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 9,
+   "first": "狗很喜欢自己的碗吗",
+   "file": "conversations/20260604-狗对碗的情感联系-d2481b8d.md"
+  },
+  {
+   "idx": 1771,
+   "title": "用户提供代理节点链接询问",
+   "ratio": 0,
+   "grams": 11,
+   "msgs": 1,
+   "chars": 126608,
+   "first": "ss://MjAyMi1ibGFrZTMtYWVzLTEyOC1nY206WjcraWhDYWhsNHY4VVVZQ2d",
+   "file": "conversations/20260613-用户提供代理节点链接询问-a5f1f865.md"
+  },
+  {
+   "idx": 1935,
+   "title": "长期不做梦正常吗",
+   "ratio": 0,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 22,
+   "first": "我已经很长很长时间没有做过梦了，是不是有问题",
+   "file": "conversations/20260702-长期不做梦正常吗-e69c5d5f.md"
+  },
+  {
+   "idx": 1939,
+   "title": "アヘ顔とトロ顔の違い",
+   "ratio": 0,
+   "grams": 2,
+   "msgs": 1,
+   "chars": 11,
+   "first": "「アヘ顔」和「トロ顔」",
+   "file": "conversations/20260702-アヘ顔とトロ顔の違い-a4307658.md"
+  },
+  {
+   "idx": 1944,
+   "title": "小红书账号咨询",
+   "ratio": 0,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 2,
+   "first": "翻译",
+   "file": "conversations/20260703-小红书账号咨询-a73c995a.md"
+  },
+  {
+   "idx": 1954,
+   "title": "婚内强奸法律段子拆解",
+   "ratio": 0,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 0,
+   "first": "",
+   "file": "conversations/20260703-婚内强奸法律段子拆解-5ea3ba99.md"
+  },
+  {
+   "idx": 1989,
+   "title": "历史迷因袁孙对决",
+   "ratio": 0,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 0,
+   "first": "",
+   "file": "conversations/20260710-历史迷因袁孙对决-4b7b557d.md"
+  },
+  {
+   "idx": 2010,
+   "title": "苹果ID贷骗局警示",
+   "ratio": 0,
+   "grams": 8,
+   "msgs": 1,
+   "chars": 5,
+   "first": "这什么东西",
+   "file": "conversations/20260713-苹果ID贷骗局警示-bf6c1fc8.md"
+  },
+  {
+   "idx": 2032,
+   "title": "食葬腹葬",
+   "ratio": 0,
+   "grams": 3,
+   "msgs": 1,
+   "chars": 14,
+   "first": "吃掉去世的人的尸体，叫什么葬",
+   "file": "conversations/20260717-食葬腹葬-9baf1137.md"
+  },
+  {
+   "idx": 2058,
+   "title": "邦布知识介绍",
+   "ratio": 0,
+   "grams": 5,
+   "msgs": 1,
+   "chars": 7,
+   "first": "bangboo",
+   "file": "conversations/20260722-邦布知识介绍-06deadc8.md"
+  },
+  {
+   "idx": 2066,
+   "title": "猫咪服装指南",
+   "ratio": 0,
+   "grams": 5,
+   "msgs": 1,
+   "chars": 11,
+   "first": "cat costume",
+   "file": "conversations/20260725-猫咪服装指南-33a0d812.md"
+  },
+  {
+   "idx": 2076,
+   "title": "2026-07-29,成都,事业单位,逻辑题",
+   "ratio": 0,
+   "grams": 16,
+   "msgs": 1,
+   "chars": 0,
+   "first": "",
+   "file": "conversations/20260729-2026-07-29,成都,事业单位,逻辑题-c5a56366.md"
+  },
+  {
+   "idx": 2082,
+   "title": "生育年龄科学事实",
+   "ratio": 0,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 85,
+   "first": "放个暴论，本质是高学历硕博女性配子在其普遍跨入30岁之后质量开始断崖式下降，故策略偏向以足够资源投入来弥补先天缺陷，不倾",
+   "file": "conversations/20260730-生育年龄科学事实-02fa2a4b.md"
+  },
+  {
+   "idx": 2085,
+   "title": "温暖陪伴日语",
+   "ratio": 0,
+   "grams": 5,
+   "msgs": 1,
+   "chars": 25,
+   "first": "そう 忘れないで 一人じゃないよ 君のそばにいるよ",
+   "file": "conversations/20260730-温暖陪伴日语-919d552a.md"
+  },
+  {
+   "idx": 2086,
+   "title": "股票持仓分析",
+   "ratio": 0,
+   "grams": 5,
+   "msgs": 1,
+   "chars": 0,
+   "first": "",
+   "file": "conversations/20260731-股票持仓分析-aca1cbdb.md"
+  },
+  {
+   "idx": 2107,
+   "title": "舒肤佳增肌沐浴露解读",
+   "ratio": 0,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 0,
+   "first": "",
+   "file": "conversations/20260803-舒肤佳增肌沐浴露解读-6b564aae.md"
+  },
+  {
+   "idx": 2128,
+   "title": "拉康欲望结构分析",
+   "ratio": 0,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 0,
+   "first": "",
+   "file": "conversations/20260805-拉康欲望结构分析-9258e8a3.md"
+  },
+  {
+   "idx": 2163,
+   "title": "聊天记录情感分析",
+   "ratio": 0,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 0,
+   "first": "",
+   "file": "conversations/20260810-聊天记录情感分析-85fff2b8.md"
+  },
+  {
+   "idx": 2173,
+   "title": "时间差计算",
+   "ratio": 0,
+   "grams": 4,
+   "msgs": 1,
+   "chars": 19,
+   "first": "昨天的00：17分到现在过了多少个小时",
+   "file": "conversations/20260812-时间差计算-8dc93dea.md"
+  },
+  {
+   "idx": 2180,
+   "title": "爱的闭环诗意解读",
+   "ratio": 0,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 27,
+   "first": "我爱你，从我这里到你那里，再回到我这里 什么意思啊",
+   "file": "conversations/20260813-爱的闭环诗意解读-c83b5f08.md"
+  },
+  {
+   "idx": 2198,
+   "title": "知乎链接无法访问",
+   "ratio": 0,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 129,
+   "first": "https://www.zhihu.com/question/2060714811558716060/answer/20",
+   "file": "conversations/20260815-知乎链接无法访问-2d46948e.md"
+  },
+  {
+   "idx": 2205,
+   "title": "各平台简介",
+   "ratio": 0,
+   "grams": 4,
+   "msgs": 1,
+   "chars": 28,
+   "first": "X、即刻、小红书、Linux.do、V2EX 分别是什么",
+   "file": "conversations/20260816-各平台简介-1077f63b.md"
+  },
+  {
+   "idx": 2223,
+   "title": "山竹识别",
+   "ratio": 0,
+   "grams": 3,
+   "msgs": 1,
+   "chars": 4,
+   "first": "这是什么",
+   "file": "conversations/20260819-山竹识别-cc5e2290.md"
+  },
+  {
+   "idx": 2276,
+   "title": "喝牛奶不适应对",
+   "ratio": 0,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 20,
+   "first": "喝了这个肚子不舒服。但是还是想喝，怎么办",
+   "file": "conversations/20260828-喝牛奶不适应对-7aadad05.md"
+  },
+  {
+   "idx": 2282,
+   "title": "猫换睡地原因",
+   "ratio": 0,
+   "grams": 5,
+   "msgs": 1,
+   "chars": 40,
+   "first": "为什么不管我有没有睡在床上。猫都是有时候睡床上，有时候睡床底，有时候睡床边地上啊",
+   "file": "conversations/20260829-猫换睡地原因-1827d6a4.md"
+  },
+  {
+   "idx": 2306,
+   "title": "高积云鱼鳞云",
+   "ratio": 0,
+   "grams": 5,
+   "msgs": 1,
+   "chars": 5,
+   "first": "这叫什么云",
+   "file": "conversations/20260902-高积云鱼鳞云-178fa482.md"
+  },
+  {
+   "idx": 2370,
+   "title": "拉链含义解释",
+   "ratio": 0,
+   "grams": 5,
+   "msgs": 1,
+   "chars": 5,
+   "first": "什么叫拉练",
+   "file": "conversations/20260911-拉链含义解释-e37911cc.md"
+  },
+  {
+   "idx": 2383,
+   "title": "日语填空解答",
+   "ratio": 0,
+   "grams": 5,
+   "msgs": 1,
+   "chars": 0,
+   "first": "",
+   "file": "conversations/20260912-日语填空解答-eeb6575a.md"
+  },
+  {
+   "idx": 2389,
+   "title": "登科酒价格咨询",
+   "ratio": 0,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 5,
+   "first": "这酒多少钱",
+   "file": "conversations/20260913-登科酒价格咨询-7e39fc04.md"
+  },
+  {
+   "idx": 2411,
+   "title": "时空可组合性编程范式",
+   "ratio": 0,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 36,
+   "first": "https://arxiv.org/pdf/2608.25512 总结",
+   "file": "conversations/20260916-时空可组合性编程范式-e9c67854.md"
+  },
+  {
+   "idx": 2413,
+   "title": "宿醉头痛处理建议",
+   "ratio": 0,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 18,
+   "first": "昨晚和啤酒喝多了，今早醒来头疼怎么办",
+   "file": "conversations/20260916-宿醉头痛处理建议-5e3acfca.md"
+  },
+  {
+   "idx": 2428,
+   "title": "光头男士身份未识别",
+   "ratio": 0,
+   "grams": 8,
+   "msgs": 1,
+   "chars": 7,
+   "first": "左边这个人是谁",
+   "file": "conversations/20260918-光头男士身份未识别-f22e4b42.md"
+  },
+  {
+   "idx": 1696,
+   "title": "<｜｜DSML｜｜invoke name=\"open\">\n<｜｜DSML｜｜parameter name=\"open_list\" string=\"false\">[{\"cursor\": 0, \"id\": 3}, {\"cursor\": 0, \"id\": 5}, {\"cursor\": 1, \"id\": 0}, {\"cursor\": 1, \"",
+   "ratio": 0.015625,
+   "grams": 64,
+   "msgs": 1,
+   "chars": 11,
+   "first": "同人圈里的inj是什么",
+   "file": "conversations/20260603-DSML invoke name= open DSML parameter name= open_list string-7c56f98e.md"
+  },
+  {
+   "idx": 1465,
+   "title": "中方关于日本拥核问题的工作文件总结",
+   "ratio": 0.0625,
+   "grams": 16,
+   "msgs": 1,
+   "chars": 108,
+   "first": "https://www.mfa.gov.cn/web/wjb_673085/zzjg_673183/jks_674633",
+   "file": "conversations/20260501-中方关于日本拥核问题的工作文件总结-5f83c5ec.md"
+  },
+  {
+   "idx": 1912,
+   "title": "足球11人含门将时长90分",
+   "ratio": 0.08333333333333333,
+   "grams": 12,
+   "msgs": 1,
+   "chars": 19,
+   "first": "足球队十一人包括守门员吗。一场比赛多长",
+   "file": "conversations/20260630-足球11人含门将时长90分-0fc88578.md"
+  },
+  {
+   "idx": 317,
+   "title": "名爵改装文化盛行原因分析",
+   "ratio": 0.09090909090909091,
+   "grams": 11,
+   "msgs": 1,
+   "chars": 10,
+   "first": "为什么改车大多是名爵",
+   "file": "conversations/20250525-名爵改装文化盛行原因分析-c1b400da.md"
+  },
+  {
+   "idx": 1488,
+   "title": "猫瘟检测阴性无法判断轻重",
+   "ratio": 0.09090909090909091,
+   "grams": 11,
+   "msgs": 1,
+   "chars": 10,
+   "first": "猫瘟算轻症还是重症吗",
+   "file": "conversations/20260504-猫瘟检测阴性无法判断轻重-19fca815.md"
+  },
+  {
+   "idx": 1831,
+   "title": "vivo浏览器图标识别",
+   "ratio": 0.09090909090909091,
+   "grams": 11,
+   "msgs": 1,
+   "chars": 10,
+   "first": "这是什么app的图标",
+   "file": "conversations/20260622-vivo浏览器图标识别-94cbdc46.md"
+  },
+  {
+   "idx": 1793,
+   "title": "=\"true\">LED 灯珠 数量 很多 吗||LED 灯珠 数量 差异 类型||LED 灯珠 很多 误解||LED 灯珠 是什么</｜｜DSML｜｜parameter>\n</｜｜DSML｜｜invoke>\n</｜｜DSML｜｜tool_calls>",
+   "ratio": 0.09523809523809523,
+   "grams": 63,
+   "msgs": 1,
+   "chars": 11,
+   "first": "led都有很多灯珠吗？",
+   "file": "conversations/20260616-= true LED 灯珠 数量 很多 吗 LED 灯珠 数量 差异 类型 LED 灯珠 很多 误解 LED 灯珠 是什-81c8868f.md"
+  },
+  {
+   "idx": 270,
+   "title": "轻哼网络梗的来源与用法",
+   "ratio": 0.1,
+   "grams": 10,
+   "msgs": 1,
+   "chars": 6,
+   "first": "轻哼是什么梗",
+   "file": "conversations/20250507-轻哼网络梗的来源与用法-97408ded.md"
+  },
+  {
+   "idx": 220,
+   "title": "游戏药剂避光特性分析",
+   "ratio": 0.1111111111111111,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 24,
+   "first": "药剂工艺：炼金模拟器中，避免阳光直射的药剂是什么",
+   "file": "conversations/20250406-游戏药剂避光特性分析-545d1980.md"
+  },
+  {
+   "idx": 254,
+   "title": "夏季空调温度设置建议",
+   "ratio": 0.1111111111111111,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 10,
+   "first": "夏天空调开多少度合适",
+   "file": "conversations/20250420-夏季空调温度设置建议-87ba9946.md"
+  },
+  {
+   "idx": 703,
+   "title": "面对出轨后的婚姻抉择",
+   "ratio": 0.1111111111111111,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 21,
+   "first": "老婆出轨了，向我坦白请求我原谅。我该离婚吗",
+   "file": "conversations/20250908-面对出轨后的婚姻抉择-8e5e6dfa.md"
+  },
+  {
+   "idx": 1487,
+   "title": "成都今日日落时间查询",
+   "ratio": 0.1111111111111111,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 10,
+   "first": "今天成都几点太阳落山",
+   "file": "conversations/20260504-成都今日日落时间查询-9aeb20d2.md"
+  },
+  {
+   "idx": 1543,
+   "title": "30岁未长大心理总结",
+   "ratio": 0.1111111111111111,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 2,
+   "first": "总结",
+   "file": "conversations/20260510-30岁未长大心理总结-f601b6f4.md"
+  },
+  {
+   "idx": 1652,
+   "title": "猫咪床上排便原因解析",
+   "ratio": 0.1111111111111111,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 36,
+   "first": "猫明明有猫砂盆，而且也正常使用很久了。为什么还会在我床上拉屎，还拉了两次",
+   "file": "conversations/20260529-猫咪床上排便原因解析-c6ed5a07.md"
+  },
+  {
+   "idx": 1661,
+   "title": "知乎回答总结请求处理",
+   "ratio": 0.1111111111111111,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 133,
+   "first": "https://www.zhihu.com/question/1955316001672532858/answer/19",
+   "file": "conversations/20260530-知乎回答总结请求处理-37648f0a.md"
+  },
+  {
+   "idx": 1662,
+   "title": "知乎回答无法访问总结",
+   "ratio": 0.1111111111111111,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 133,
+   "first": "https://www.zhihu.com/question/1955316001672532858/answer/19",
+   "file": "conversations/20260530-知乎回答无法访问总结-4352151e.md"
+  },
+  {
+   "idx": 2067,
+   "title": "35岁御三家图标含义",
+   "ratio": 0.1111111111111111,
+   "grams": 9,
+   "msgs": 1,
+   "chars": 10,
+   "first": "最下面三个图标是什么",
+   "file": "conversations/20260725-35岁御三家图标含义-324b1597.md"
+  },
+  {
+   "idx": 1515,
+   "title": "查询名下手机卡方法",
+   "ratio": 0.125,
+   "grams": 8,
+   "msgs": 1,
+   "chars": 15,
+   "first": "怎么查自己名下有多少移动电话卡",
+   "file": "conversations/20260507-查询名下手机卡方法-f04f5e6e.md"
+  },
+  {
+   "idx": 1708,
+   "title": "腻缝在相声中的含义",
+   "ratio": 0.125,
+   "grams": 8,
+   "msgs": 1,
+   "chars": 12,
+   "first": "表演里面的腻缝是什么意思",
+   "file": "conversations/20260605-腻缝在相声中的含义-14602f5a.md"
+  },
+  {
+   "idx": 1847,
+   "title": "路西法耶稣再世评价",
+   "ratio": 0.125,
+   "grams": 8,
+   "msgs": 1,
+   "chars": 8372,
+   "first": " 我又来玩我的梗了，这么贴切的话题怎么么能错过呢？正好借这个机会我就体系化的用圣经给大家解释一下： 1，中国人不信上帝，",
+   "file": "conversations/20260624-路西法耶稣再世评价-b91498fd.md"
+  },
+  {
+   "idx": 1948,
+   "title": "清华卓医班争议解析",
+   "ratio": 0.125,
+   "grams": 8,
+   "msgs": 1,
+   "chars": 149,
+   "first": "最怀念张牲张雪峰的一集，河南699分考生被清华招生组忽悠去清华医学院读书 清华招生组和考生学校领导为kpi脸都不要了 这",
+   "file": "conversations/20260703-清华卓医班争议解析-49637744.md"
+  },
+  {
+   "idx": 2194,
+   "title": "郴州米饺或油酥面团",
+   "ratio": 0.125,
+   "grams": 8,
+   "msgs": 1,
+   "chars": 16,
+   "first": "湖南郴州朋友发的。这是什么食物。",
+   "file": "conversations/20260814-郴州米饺或油酥面团-1a702168.md"
+  },
+  {
+   "idx": 2222,
+   "title": "水果不能替代绿叶菜",
+   "ratio": 0.125,
+   "grams": 8,
+   "msgs": 1,
+   "chars": 22,
+   "first": "一天的饮食里面山竹和青芒可以代替绿叶蔬菜吗？",
+   "file": "conversations/20260819-水果不能替代绿叶菜-c7e37e48.md"
+  },
+  {
+   "idx": 515,
+   "title": "Understanding ADHD and Its Management Strategies",
+   "ratio": 0.13636363636363635,
+   "grams": 44,
+   "msgs": 2,
+   "chars": 3233,
+   "first": "adhd",
+   "file": "conversations/20250708-Understanding ADHD and Its Management Strategies-b33cb097.md"
+  },
+  {
+   "idx": 225,
+   "title": "程序执行失败代码225解决方案",
+   "ratio": 0.14285714285714285,
+   "grams": 14,
+   "msgs": 1,
+   "chars": 60,
+   "first": "Unable to execute file: createprocess failed;code 225 什么意思",
+   "file": "conversations/20250408-程序执行失败代码225解决方案-59106cb4.md"
+  },
+  {
+   "idx": 283,
+   "title": "开窗与空调同时使用的影响及建议",
+   "ratio": 0.14285714285714285,
+   "grams": 14,
+   "msgs": 1,
+   "chars": 5,
+   "first": "开窗开空调",
+   "file": "conversations/20250516-开窗与空调同时使用的影响及建议-b0b4f737.md"
+  },
+  {
+   "idx": 473,
+   "title": "什么是多巴胺女孩",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 22,
+   "chars": 44069,
+   "first": "3d打印用什么软件",
+   "file": "conversations/20250701-什么是多巴胺女孩-d101482c.md"
+  },
+  {
+   "idx": 1457,
+   "title": "婴儿油润滑剂翻译",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 2,
+   "first": "翻译",
+   "file": "conversations/20260430-婴儿油润滑剂翻译-4c57f137.md"
+  },
+  {
+   "idx": 1512,
+   "title": "性别困境实验总结",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 2,
+   "first": "总结",
+   "file": "conversations/20260507-性别困境实验总结-a96c2b3c.md"
+  },
+  {
+   "idx": 1540,
+   "title": "猫的本能行为解析",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 6,
+   "first": "猫有哪些本能",
+   "file": "conversations/20260509-猫的本能行为解析-b44621ba.md"
+  },
+  {
+   "idx": 1752,
+   "title": "毕业年龄标准计算",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 13,
+   "first": "初中高中大学毕业分别多少岁",
+   "file": "conversations/20260612-毕业年龄标准计算-e4004a65.md"
+  },
+  {
+   "idx": 1825,
+   "title": "弱关系与信息套利",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 91,
+   "first": "我感觉一个人只要长期接触大量陌生人，很容易越混越好。因为总是能接触到新的东西。单个人闲聊两句作用有限，但是人数多了，这些",
+   "file": "conversations/20260621-弱关系与信息套利-02f87c04.md"
+  },
+  {
+   "idx": 1887,
+   "title": "翻译怪物警告标志",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 2,
+   "first": "翻译",
+   "file": "conversations/20260628-翻译怪物警告标志-154f985d.md"
+  },
+  {
+   "idx": 1909,
+   "title": "2.2更新公告翻译",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 20237,
+   "first": "Attention Brigadiers! 2.2 is here and with it comes a new su",
+   "file": "conversations/20260629-2.2更新公告翻译-b471287a.md"
+  },
+  {
+   "idx": 2046,
+   "title": "男性视觉性欲正常",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 49,
+   "first": "为什么网上随便一个女生，不露脸，穿点什么显身材的服饰都能引起我的性欲啊。这不公平，其他男的也这样吗",
+   "file": "conversations/20260720-男性视觉性欲正常-155e749d.md"
+  },
+  {
+   "idx": 2075,
+   "title": "冒充保释违法风险",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 23,
+   "first": "朋友嫖娼被抓了，我能假装领导或者家属去保释他吗",
+   "file": "conversations/20260729-冒充保释违法风险-e10b8199.md"
+  },
+  {
+   "idx": 2236,
+   "title": "小花相关歌曲汇总",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 7,
+   "first": "跟小花有关的歌",
+   "file": "conversations/20260820-小花相关歌曲汇总-0544e347.md"
+  },
+  {
+   "idx": 2270,
+   "title": "男性极简化妆控油",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 31,
+   "first": "男，33岁，175，100斤。脸上出油，毛孔大。想最低程度化妆",
+   "file": "conversations/20260828-男性极简化妆控油-d89afd0e.md"
+  },
+  {
+   "idx": 2351,
+   "title": "兰亭序与购物巧合",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 129,
+   "first": "传说兰亭集序就是王羲之在醉酒状态下写出来的，在他第2天酒醒之后，他又重新写了好几遍，都没有之前写的那一次好。所以真的是这",
+   "file": "conversations/20260908-兰亭序与购物巧合-daa4873d.md"
+  },
+  {
+   "idx": 2438,
+   "title": "猫右眼睁不大原因",
+   "ratio": 0.14285714285714285,
+   "grams": 7,
+   "msgs": 1,
+   "chars": 27,
+   "first": "猫的右眼总是睁得没有左眼大，甚至有时候直接闭上。为什么",
+   "file": "conversations/20260923-猫右眼睁不大原因-f4304378.md"
+  },
+  {
+   "idx": 143,
+   "title": "青铜剑使用时间及淘汰原因分析",
+   "ratio": 0.15384615384615385,
+   "grams": 13,
+   "msgs": 1,
+   "chars": 10,
+   "first": "青铜剑最晚到什么时代",
+   "file": "conversations/20250310-青铜剑使用时间及淘汰原因分析-a4b3da80.md"
+  },
+  {
+   "idx": 261,
+   "title": "电脑长期开机的影响及优化建议",
+   "ratio": 0.15384615384615385,
+   "grams": 13,
+   "msgs": 1,
+   "chars": 15,
+   "first": "pc或者笔记本一直开机有影响吗",
+   "file": "conversations/20250429-电脑长期开机的影响及优化建议-23a55192.md"
+  },
+  {
+   "idx": 354,
+   "title": "锁麟囊中薛湘灵的愧疚与成长",
+   "ratio": 0.16666666666666666,
+   "grams": 12,
+   "msgs": 1,
+   "chars": 16,
+   "first": "锁麟囊里 为什么说愧我当初赠木桃",
+   "file": "conversations/20250606-锁麟囊中薛湘灵的愧疚与成长-a26efa39.md"
+  },
+  {
+   "idx": 361,
+   "title": "M.2硬盘无法识别的排查方法",
+   "ratio": 0.16666666666666666,
+   "grams": 12,
+   "msgs": 1,
+   "chars": 17,
+   "first": "插上m.2硬盘后，我的电脑里看不见",
+   "file": "conversations/20250607-M.2硬盘无法识别的排查方法-c788072b.md"
+  },
+  {
+   "idx": 1306,
+   "title": "在线问候与帮助",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 6,
+   "chars": 3996,
+   "first": "我住在成都双流区三都汇朝里，副卧没人住，但是床是充气床。可以赚钱吗",
+   "file": "conversations/20260330-在线问候与帮助-96418d29.md"
+  },
+  {
+   "idx": 1625,
+   "title": "成都化石采集法律与安全指南",
+   "ratio": 0.16666666666666666,
+   "grams": 12,
+   "msgs": 1,
+   "chars": 37,
+   "first": "网友说有些地方到处都是化石，真的吗。我住在成都，能自己到附近挖化石做纪念吗",
+   "file": "conversations/20260527-成都化石采集法律与安全指南-bcba3c40.md"
+  },
+  {
+   "idx": 1638,
+   "title": "AI思维链解释",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 9,
+   "first": "ai的cot指什么",
+   "file": "conversations/20260528-AI思维链解释-bc436070.md"
+  },
+  {
+   "idx": 1732,
+   "title": "疏离感含义解析",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 25,
+   "first": "总说intp或者通透的人容易显得疏离，什么叫疏离啊",
+   "file": "conversations/20260610-疏离感含义解析-81a8d22b.md"
+  },
+  {
+   "idx": 1890,
+   "title": "猫钻两脚间含义",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 29,
+   "first": "请问站着，或者走动的时候，猫老是喜欢钻到两脚之间是什么意思",
+   "file": "conversations/20260628-猫钻两脚间含义-d278c771.md"
+  },
+  {
+   "idx": 1896,
+   "title": "红蓝药丸的抉择",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 14,
+   "first": "黑客帝国两颗药丸分别代表什么",
+   "file": "conversations/20260628-红蓝药丸的抉择-c17a1827.md"
+  },
+  {
+   "idx": 1897,
+   "title": "可乐梗刷屏原因",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 3538,
+   "first": "这就是我为什么喜欢劝年轻的女孩，抓紧找个有上进心的小伙子嫁了，赌一把。 而非努力鸡自己，等到30岁找门当户对男性 男性隐",
+   "file": "conversations/20260628-可乐梗刷屏原因-b7610332.md"
+  },
+  {
+   "idx": 2095,
+   "title": "妾对正妻的称呼",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 9,
+   "first": "妾应该叫正妻叫什么",
+   "file": "conversations/20260802-妾对正妻的称呼-ae3f7414.md"
+  },
+  {
+   "idx": 2196,
+   "title": "四句两地离思诗",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 24,
+   "first": "形容两地气候不同的诗句。(隐含分离，思念的意思)",
+   "file": "conversations/20260814-四句两地离思诗-8b14949c.md"
+  },
+  {
+   "idx": 2210,
+   "title": "无法查看群消息",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 13,
+   "first": "怎么看朋友圈的历史提醒消息",
+   "file": "conversations/20260817-无法查看群消息-b4926e4e.md"
+  },
+  {
+   "idx": 2230,
+   "title": "子时睡眠重要性",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 25,
+   "first": "为什呢人最好在晚上11点到凌晨1点之间处于睡眠状态",
+   "file": "conversations/20260820-子时睡眠重要性-7fde375f.md"
+  },
+  {
+   "idx": 2313,
+   "title": "初遇即别离诗句",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 18,
+   "first": "有没有描述刚认识/相爱就要分开的诗句",
+   "file": "conversations/20260903-初遇即别离诗句-2b332b83.md"
+  },
+  {
+   "idx": 2323,
+   "title": "恒我即嫦娥原名",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 6,
+   "first": "恒我是什么神",
+   "file": "conversations/20260904-恒我即嫦娥原名-63f830e5.md"
+  },
+  {
+   "idx": 2384,
+   "title": "星见枫角色介绍",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 6,
+   "first": "这是什么角色",
+   "file": "conversations/20260912-星见枫角色介绍-b6c316d6.md"
+  },
+  {
+   "idx": 2404,
+   "title": "被设计人生总结",
+   "ratio": 0.16666666666666666,
+   "grams": 6,
+   "msgs": 1,
+   "chars": 2,
+   "first": "总结",
+   "file": "conversations/20260915-被设计人生总结-60778f4e.md"
+  },
+  {
+   "idx": 124,
+   "title": "3D区定义及创作平台解析",
+   "ratio": 0.18181818181818182,
+   "grams": 11,
+   "msgs": 1,
+   "chars": 14,
+   "first": "网友说的3d区一般指哪个网站",
+   "file": "conversations/20250222-3D区定义及创作平台解析-57e47957.md"
+  },
+  {
+   "idx": 213,
+   "title": "鼻腔炎症及鼻咽炎诊疗建议",
+   "ratio": 0.18181818181818182,
+   "grams": 11,
+   "msgs": 1,
+   "chars": 51,
+   "first": "鼻中隔偏曲，鼻粘膜红肿，双下甲肿大，鼻腔可见粘鼻涕，双侧中鼻道、嗅区、鼻咽部未见肿物。鼻咽部粘膜红肿。",
+   "file": "conversations/20250401-鼻腔炎症及鼻咽炎诊疗建议-f6ed8f83.md"
+  },
+  {
+   "idx": 232,
+   "title": "IP库功能与应用场景详解",
+   "ratio": 0.18181818181818182,
+   "grams": 11,
+   "msgs": 1,
+   "chars": 3,
+   "first": "IP库",
+   "file": "conversations/20250410-IP库功能与应用场景详解-6aa51bba.md"
+  },
+  {
+   "idx": 373,
+   "title": "绣球花修剪技巧与注意事项",
+   "ratio": 0.18181818181818182,
+   "grams": 11,
+   "msgs": 1,
+   "chars": 20,
+   "first": "我有一盆绣球花，我可以把没有花的枝剪了吗",
+   "file": "conversations/20250608-绣球花修剪技巧与注意事项-e4c98a98.md"
+  },
+  {
+   "idx": 1669,
+   "title": "属猪属猴2026年龄查询",
+   "ratio": 0.18181818181818182,
+   "grams": 11,
+   "msgs": 1,
+   "chars": 12,
+   "first": "属猪和属猴的人今年多大了",
+   "file": "conversations/20260531-属猪属猴2026年龄查询-23e4f66f.md"
+  }
+ ]
+}

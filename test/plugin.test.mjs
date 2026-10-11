@@ -110,7 +110,9 @@ function boot({ root, kbDir, subprocess, credentials, fetchImpl, config } = {}) 
       return dispose
     },
   }
-  apply(ctx, config ?? { root, kbDir, outDir: kbDir, nodeBin: 'node', configFile: MISSING_CONFIG, fetchImpl })
+  // localConfigFile：测试必须屏蔽插件自己那份 config.json，否则开发机上跑测试会读到真配置
+  // （2026-10-12 实测：迁移后 config.json 里写了真实 syncScript，发现脚本的用例就失败了）。
+  apply(ctx, config ?? { root, kbDir, outDir: kbDir, nodeBin: 'node', configFile: MISSING_CONFIG, localConfigFile: MISSING_CONFIG, fetchImpl })
   return {
     routes,
     disposers,
