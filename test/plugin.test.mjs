@@ -87,7 +87,7 @@ function makeCredentials(initial = {}) {
 }
 
 /** Boot the plugin against a mock host and return a request helper. */
-function boot({ root, kbDir, subprocess, credentials, fetchImpl, config } = {}) {
+function boot({ root, kbDir, subprocess, credentials, fetchImpl, config, llm } = {}) {
   const routes = []
   const disposers = []
   const ctx = {
@@ -103,6 +103,7 @@ function boot({ root, kbDir, subprocess, credentials, fetchImpl, config } = {}) 
       }
       if (key === 'subprocess') return subprocess
       if (key === 'credentials') return credentials
+      if (key === 'llm') return llm
       return undefined
     },
     effect(fn) {
@@ -857,4 +858,123 @@ test('iso() 写本地偏移、stamp() 按本地显示（含历史 +00:00 记录�
   // 非时间串不炸，按原样截断兜底
   assert.equal(stamp('not-a-date'), 'not-a-date')
   assert.equal(stamp(null), '')
+})
+
+/**
+ * 段 2 的路由在**收件箱全空**时会走「没活干」快速路径（不调模型）——那是正确行为，
+ * 所以测试要先造一份输入，否则验不到后面的判成。
+ */
+function writeProcessInbox(root) {
+  const inbox = join(root, 'sync', 'inbox')
+  mkdirSync(inbox, { recursive: true })
+  writeFileSync(join(inbox, 'update-new-items.tsv'), 'idx\ttitle\tupdated_at\n0\t示例对话\t2026-10-12 20:00\n')
+}
+
+/** 宿主 `llm` 服务的桩：提供商/模型发现 + 一次流式文本回答。 */
+function makeLlm({ text } = {}) {
+  const calls = []
+  return {
+    calls,
+    listProviders: () => [{ id: 'stub-provider' }],
+    listModels: async () => [{ id: 'stub-model', provider: 'stub-provider' }],
+    stream(request) {
+      calls.push(request)
+      return (async function* () {
+        yield { type: 'text-delta', text }
+        yield { type: 'finish', reason: { kind: 'stop' } }
+      })()
+    },
+  }
+}
+
+/** 按脚本名给不同退出码/输出的 subprocess 桩（插件一次只跑一个脚本）。 */
+function makeScriptedSubprocess(byScript) {
+  const specs = []
+  const subprocess = {
+    spawn(spec) {
+      specs.push(spec)
+      const script = (spec.argv ?? []).map(String).find((a) => a.endsWith('.mjs')) ?? ''
+      const name = script.split(/[\\/]/).pop()
+      const cfg = byScript[name] ?? { exitCode: 0, stdout: '' }
+      const stdout = cfg.stdout ?? ''
+      const stderr = cfg.stderr ?? ''
+      return {
+        stdin: undefined,
+        stdout: undefined,
+        stderr: undefined,
+        control: undefined,
+        collected: {
+          stdout: { readFrom: () => ({ text: stdout, nextOffset: stdout.length, lossy: false }) },
+          stderr: { readFrom: () => ({ text: stderr, nextOffset: stderr.length, lossy: false }) },
+        },
+        done: Promise.resolve({ exitCode: cfg.exitCode ?? 0, signal: null }),
+        terminate() {},
+        waitForExit: async () => true,
+      }
+    },
+  }
+  return { subprocess, specs }
+}
+
+/** 一份最小但合法的模型判断（五个区段都有，便于断言计数）。 */
+const MODEL_JSON = JSON.stringify({
+  assignments: [{ idx: 0, topic: '示例话题' }],
+  facts: [{ id: 'f-1', text: '示例事实' }],
+  candidates: [{ id: 'c-1', text: '示例候选' }],
+  suggestions: [{ idx: 0, parent: '示例专题' }],
+  summary: '示例判断',
+})
+
+test('段 2 落盘：判成看退出码，输出措辞全换也不影响', async () => {
+  const { root, kbDir } = makeRoot()
+  writeProcessInbox(root)
+  const { subprocess, specs } = makeScriptedSubprocess({
+    'prep-inbox.mjs': { exitCode: 0, stdout: 'prep ok\n' },
+    // 故意给一段脚本从没说过的措辞：只要退出码是 0 就该判成功
+    'apply-extraction.mjs': { exitCode: 0, stdout: 'VALIDATION-FINISHED-WITH-OTHER-WORDS\n' },
+  })
+  const host = boot({ root, kbDir, subprocess, llm: makeLlm({ text: MODEL_JSON }) })
+  const res = await request(host, { method: 'POST', url: `${PREFIX}/process`, body: JSON.stringify({ apply: true }) })
+
+  assert.equal(res.status, 200)
+  assert.equal(res.json.ok, true, `退出码 0 就该判成功：${JSON.stringify(res.json).slice(0, 300)}`)
+  assert.equal(res.json.applied, true)
+  assert.equal(res.json.counts.assignments, 1)
+  // prep → 校验 → 落盘 → 6 个重建脚本
+  assert.ok(specs.length >= 9, `应当跑过 prep/校验/落盘/重建，实际 ${specs.length} 次`)
+})
+
+test('段 2 落盘：校验退出码 2 判失败，且不再调落盘那一步', async () => {
+  const { root, kbDir } = makeRoot()
+  writeProcessInbox(root)
+  const { subprocess, specs } = makeScriptedSubprocess({
+    'prep-inbox.mjs': { exitCode: 0, stdout: 'prep ok\n' },
+    'apply-extraction.mjs': { exitCode: 2, stdout: '校验不通过：idx 集合不一致\n' },
+  })
+  const host = boot({ root, kbDir, subprocess, llm: makeLlm({ text: MODEL_JSON }) })
+  const res = await request(host, { method: 'POST', url: `${PREFIX}/process`, body: JSON.stringify({ apply: true }) })
+
+  assert.equal(res.json.ok, false)
+  assert.match(String(res.json.message ?? ''), /校验不通过/)
+  const realApplies = specs.filter((s) => {
+    const argv = (s.argv ?? []).map(String)
+    return argv.some((a) => a.endsWith('apply-extraction.mjs')) && !argv.includes('--dry-run')
+  })
+  assert.equal(realApplies.length, 0, '校验没过就不该再调一次落盘')
+})
+
+test('段 2 只校验：dry-run 走 --dry-run，且不回写 applied', async () => {
+  const { root, kbDir } = makeRoot()
+  writeProcessInbox(root)
+  const { subprocess, specs } = makeScriptedSubprocess({
+    'prep-inbox.mjs': { exitCode: 0, stdout: 'prep ok\n' },
+    'apply-extraction.mjs': { exitCode: 0, stdout: '（措辞随便写）\n' },
+  })
+  const host = boot({ root, kbDir, subprocess, llm: makeLlm({ text: MODEL_JSON }) })
+  const res = await request(host, { method: 'POST', url: `${PREFIX}/process`, body: JSON.stringify({ apply: false }) })
+
+  assert.equal(res.json.ok, true)
+  assert.notEqual(res.json.applied, true, 'dry-run 不该报已落盘')
+  assert.ok(specs.some((s) => (s.argv ?? []).includes('--dry-run')), '只校验必须带 --dry-run')
+  assert.equal(specs.filter((s) => String(s.argv.join(' ')).includes('build-kb')).length, 0, 'dry-run 不重建')
 })

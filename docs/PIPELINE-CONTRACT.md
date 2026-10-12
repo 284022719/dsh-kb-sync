@@ -55,7 +55,9 @@ node apply-extraction.mjs --dry-run  # 只校验：跑完全部判据、打印�
   **退出码优先**（复用 `lib/pipeline.js` 的 `classifyStage`，与整链同一条判成路径）；
   `全部校验通过` 只剩"容忍 Node 退出期噪声"的标记用途。`test/shipped.test.mjs` 有一条静态断言
   防止有人再写回 `/…校验通过…/.test(` 这种条件。
-- `/process` 路由的**端到端**测试仍缺：跑到判成那一步需要宿主 `llm` 服务的桩
-  （`listProviders` / `listModels` / `stream` 三段接口），目前只有整链路径端到端覆盖了 `classifyStage` 的接线。
+- `/process` 路由的**端到端**覆盖已补（2026-10-12）：测试夹具里加了宿主 `llm` 服务的桩
+  （`listProviders` / `listModels` / `stream` 三段 + `{type:"text-delta"}`/`finish` 两种 chunk）与**按脚本给退出码**的
+  subprocess 桩，三条用例覆盖「退出码 0 + 措辞全换仍判成功」「校验 exit 2 判失败且不再调落盘」「dry-run 不重建」。
+  ⚠️ 一个坑：**收件箱全空时路由走「没活干」快速路径、根本不调模型**（行为正确），所以测试要先造 `sync/inbox/update-new-items.tsv`。
 - 退出码语义（哪些非零算"需要修"、哪些算"上游没问题"）散在 `lib/pipeline.js` 的阶段表里，
   与脚本自身的退出码没有交叉校验。

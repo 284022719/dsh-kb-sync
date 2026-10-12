@@ -140,7 +140,7 @@ Read it like this: the red line is the *necessary* consequence of the pull half 
 ## Development
 
 ```sh
-npm test        # node --test: 83 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, language wiring, client-half contract, translation-table integrity, doc consistency)
+npm test        # node --test: 86 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, language wiring, client-half contract, translation-table integrity, doc consistency)
 npm run check   # syntax-check every lib file + an ESM import smoke test
 npm run check:types  # tsc --noEmit over lib/index.d.ts + types/usage.ts (needs npm install; dev only)
 npm run pack:check
