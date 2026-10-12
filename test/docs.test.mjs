@@ -15,7 +15,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const DOCS = ['README.md', 'README.en.md', 'CHANGELOG.md', 'docs/USAGE.md', 'docs/USAGE.en.md', 'docs/PUBLISHING.md', 'docs/CAPABILITY-DISCLOSURE.md']
+const DOCS = ['README.md', 'README.en.md', 'CHANGELOG.md', 'docs/USAGE.md', 'docs/USAGE.en.md', 'docs/PUBLISHING.md', 'docs/CAPABILITY-DISCLOSURE.md', 'docs/PIPELINE-CONTRACT.md']
 
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8')
 

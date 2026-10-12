@@ -113,3 +113,39 @@ test('脚本里写死的同目录引用都真实存在（排除用户配置与�
   const missing = refs.filter((r) => !existsSync(join(ROOT, r.base, r.target))).map((r) => `${r.file} → ${r.target}`)
   assert.deepEqual(missing, [], `这些引用在包内不存在（用户跑到那段会炸）：\n  ${missing.join('\n  ')}`)
 })
+
+/**
+ * 插件 ⇄ 管线脚本的接口契约（见 docs/PIPELINE-CONTRACT.md）。
+ *
+ * 这层接口没有类型系统兜着：插件按 argv 调脚本、按 stdout 标记判成败。最典型的坏法是
+ * **标志名两侧不一致、而错的那侧因为"未知参数被忽略"看起来能跑** —— 2026-10-12 实测：
+ * 插件调落盘时传 `['--apply']`，而 `apply-extraction.mjs` 里只有 `process.argv.includes('--dry-run')`
+ * （没有该标志就等于落盘），于是落盘成功纯属巧合；脚本哪天改成默认只校验，按钮就会**静默变成只校验**。
+ */
+test('插件引用的管线脚本都存在，且传的标志被脚本承认', () => {
+  const index = readFileSync(join(ROOT, 'lib/index.js'), 'utf8')
+
+  // ① 插件引用的脚本都要存在：既包括 `prepScript: join(dir, 'prep-inbox.mjs')` 这种带键名的，
+  //    也包括重建数组里那些没有键名的（`join(dir, 'build-kb.mjs'),`）。
+  const scriptFiles = [...new Set([...index.matchAll(/join\(dir,\s*'([^']+\.mjs)'\)/g)].map((m) => m[1]))]
+  assert.ok(scriptFiles.length >= 9, `应当解析出插件用到的管线脚本，实际 ${scriptFiles.length}`)
+  const missingScripts = scriptFiles.filter((file) => !existsSync(join(ROOT, 'tools/pipeline', file)))
+  assert.deepEqual(missingScripts, [], `插件引用的脚本在 tools/pipeline 里不存在：${missingScripts.join(', ')}`)
+
+  // 键名映射只用于下面把 `files.X` 翻成脚本文件
+  const scripts = new Map()
+  for (const m of index.matchAll(/(\w+):\s*join\(dir,\s*'([^']+\.mjs)'\)/g)) scripts.set(m[1], m[2])
+
+  // ② 传出去的标志必须出现在对应脚本源码里（位置参数不查，它们可能是脚本的业务参数）
+  const checks = []
+  for (const m of index.matchAll(/runPipelineScript\(\s*files\.(\w+)\s*,\s*\[([^\]]*)\]/g)) {
+    const [, key, args] = m
+    const file = scripts.get(key)
+    if (file === undefined) continue
+    const text = readFileSync(join(ROOT, 'tools/pipeline', file), 'utf8')
+    for (const flag of args.matchAll(/'(--[a-z-]+)'/g)) checks.push({ file, flag: flag[1], known: text.includes(flag[1]) })
+  }
+  assert.ok(checks.length >= 1, `应当扫到至少一处带标志的调用，实际 ${checks.length}`)
+  const unknown = checks.filter((c) => !c.known).map((c) => `${c.file} 不认 ${c.flag}`)
+  assert.deepEqual(unknown, [], `插件传了脚本不认的标志（脚本会静默忽略）：\n  ${unknown.join('\n  ')}`)
+})
