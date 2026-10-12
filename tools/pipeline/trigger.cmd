@@ -86,7 +86,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "  foreach ($s in $j.stages) { Write-Output ('  {0,-8} {1,-14} {2,7} ms  {3}' -f $s.stage, $s.code, $s.ms, $s.message) };" ^
   "  Write-Output ('chain ok=' + $j.ok + '  reason=' + $j.reason);" ^
   "  exit ([int]([bool](-not $j.ok)))" ^
-  "} catch { Write-Output ('trigger failed: ' + $_.Exception.Message); exit 1 }" >> "%LOG%" 2>&1
+  "} catch {" ^
+  "  $resp = $null;" ^
+  "  try { $resp = $_.Exception.Response } catch { };" ^
+  "  if ($null -ne $resp) {" ^
+  "    $code = [int]$resp.StatusCode;" ^
+  "    $body = '';" ^
+  "    try { $sr = New-Object System.IO.StreamReader($resp.GetResponseStream()); $body = $sr.ReadToEnd() } catch { };" ^
+  "    Write-Output ('chain reported failure (HTTP ' + $code + ')');" ^
+  "    if ($body) { Write-Output ('  body: ' + $body) };" ^
+  "    exit 1" ^
+  "  }" ^
+  "  Write-Output ('trigger failed (no HTTP response): ' + $_.Exception.Message);" ^
+  "  exit 1" ^
+  "}" >> "%LOG%" 2>&1
 
 set "RC=%ERRORLEVEL%"
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format s"') do set "STAMP=%%i"
