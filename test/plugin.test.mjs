@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { apply, originAllowed, resolveSettings, collectStatus, PLUGIN_ROOT } from '../lib/index.js'
+import { iso, stamp } from '../lib/deepseek.js'
 
 const PREFIX = '/__dsh-kb-sync'
 
@@ -805,4 +806,25 @@ test('backfill walks export_all → poll → download → merge, and is idempote
   assert.equal(status.backfill.added, 0)
   assert.equal(status.backfill.skipped, 2)
   assert.equal(readFileSync(join(kbDir, 'conversations.jsonl'), 'utf8').trim().split('\n').length, 2)
+})
+
+test('iso() 写本地偏移、stamp() 按本地显示（含历史 +00:00 记录）', () => {
+  // 2026-10-12T13:51:33Z —— 北京时间为 21:51:33
+  const epoch = Date.UTC(2026, 9, 12, 13, 51, 33) / 1000
+  const pad = (n) => String(n).padStart(2, '0')
+  const d = new Date(epoch * 1000)
+  const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+
+  const s = iso(epoch)
+  // 带显式本地偏移（而不是 UTC 的 +00:00），且指向同一个时刻
+  assert.match(s, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/)
+  assert.equal(Date.parse(s), epoch * 1000)
+  assert.equal(s.slice(0, 16), `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`)
+
+  // 新写法（本地偏移）与历史遗留的 +00:00 写法，显示出来都必须是本地时间
+  assert.equal(stamp(s), local)
+  assert.equal(stamp('2026-10-12T13:51:33.991+00:00'), local)
+  // 非时间串不炸，按原样截断兜底
+  assert.equal(stamp('not-a-date'), 'not-a-date')
+  assert.equal(stamp(null), '')
 })

@@ -30,8 +30,30 @@ const HEADERS = {
 
 const USER_FRAGS = new Set(['REQUEST', 'FILE']);
 const ASSIST_FRAGS = new Set(['THINK', 'RESPONSE', 'SEARCH', 'TOOL_SEARCH', 'TOOL_OPEN', 'TOOL_FIND']);
-const iso = (sec) => (sec ? new Date(sec * 1000).toISOString().replace('Z', '+00:00') : null);
-const stamp = (isoStr) => (isoStr ? String(isoStr).replace('T', ' ').slice(0, 16) : '');
+// unix 秒 → ISO，**带本机时区偏移**（与导出包那条路同口径；原先用 toISOString() 写 UTC，
+// 导致增量进来的会话在 Markdown 头里比本地早 8 小时 —— 2026-10-12 实测全库 2442 条 +08:00 vs 114 条 +00:00）。
+const iso = (sec) => {
+  if (!sec) return null;
+  const d = new Date(sec * 1000);
+  const p = (n) => String(n).padStart(2, '0');
+  const off = -d.getTimezoneOffset();
+  const sign = off < 0 ? '-' : '+';
+  return (
+    `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}` +
+    `T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3, '0')}` +
+    `${sign}${p(Math.floor(Math.abs(off) / 60))}:${p(Math.abs(off) % 60)}`
+  );
+};
+// ISO → 本机时间显示：解析成时刻再渲染，历史遗留的 +00:00 与新写的 +08:00 都能显示正确。
+const stamp = (isoStr) => {
+  if (!isoStr) return '';
+  const t = Date.parse(isoStr);
+  if (!Number.isFinite(t)) return String(isoStr).replace('T', ' ').slice(0, 16);
+  const d = new Date(t);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+// ISO → `YYYYMMDD`（文件名用）。只切前 10 位：库里存的本地偏移日期就是会话的本地日期。
 const ymd = (isoStr) => (isoStr ? String(isoStr).slice(0, 10).replace(/-/g, '') : '00000000');
 const kbSize = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
@@ -163,17 +185,16 @@ const recs = readFileSync(join(SRC, 'conversations.jsonl'), 'utf8').split('\n').
 const catalog = JSON.parse(readFileSync(join(SRC, 'catalog.json'), 'utf8'));
 const localById = new Map(recs.map((r, i) => [r.id, { rec: r, idx: i }]));
 const localMaxUp = Math.max(...catalog.map((c) => Date.parse(c.updated_at ?? 0)));
-console.log(`本地: ${recs.length} 条，updated_at 最新 ${new Date(localMaxUp).toISOString().slice(0, 16)}`);
+console.log(`本地: ${recs.length} 条，updated_at 最新 ${stamp(iso(localMaxUp / 1000))}`);
 
-// 翻页直到越过本地最新时间（保证不漏）
+// 只拉最近一页。这条接口**翻不了页**（2026-10-12 实测：count>100 直接报 ILLEGAL_COUNT；
+// page / offset / page_num / seq_id / cursor 全被忽略；POST 405）——原先"翻页直到越过本地最新时间"
+// 的循环其实永远只跑一轮，是个假的保证。比这一页更早的历史只能用官方导出包（全量回填）补。
 const seen = new Map();
-for (let p = 1; p <= 10; p++) {
-  const biz = await fetchPage();
-  for (const s of biz.chat_sessions) if (!seen.has(s.id)) seen.set(s.id, s);
-  const oldest = Math.min(...biz.chat_sessions.map((s) => s.updated_at));
-  console.log(`  第 ${p} 页 ${biz.chat_sessions.length} 条，最旧 ${iso(oldest).slice(0, 16)}${biz.has_more ? '' : '（没有更多）'}`);
-  if (!biz.has_more || oldest * 1000 <= localMaxUp) break;
-}
+const firstPage = await fetchPage();
+for (const s of firstPage.chat_sessions ?? []) if (!seen.has(s.id)) seen.set(s.id, s);
+const pageOldest = Math.min(...[...seen.values()].map((s) => s.updated_at));
+console.log(`  最近 ${seen.size} 条，最旧 ${stamp(iso(pageOldest))}${firstPage.has_more ? '（接口还有更早的，但翻不了页 → 要补历史用全量回填）' : '（没有更多）'}`);
 
 const sessions = [...seen.values()];
 const isNew = sessions.filter((s) => !localById.has(s.id));
