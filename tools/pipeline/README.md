@@ -8,7 +8,21 @@
 
 把你在外面（手机/公司电脑）用 chat.deepseek.com 产生的对话，**每天自动**吸收进本地知识库。
 
+> **⚠️ 2026-10-12 阶段 3 之后，本文档的「一」到「一之六」「三」「五」「六」几节描述的是
+> 已被替换的旧链路（`sync-daily.cmd` / `sync-extract.cmd` / `dsh headless` / `ENABLE-SEGMENT-2.flag`
+> / `.dsh-home`）—— 它们现在只在 `retired\` 里躺着。**现行链路看「一之七」**（`trigger.cmd` →
+> 插件 `POST /__dsh-kb-sync/pipeline`）。保留旧节是因为里面的报错原文与实测数字仍有参考价值，
+> 但**别照旧节里的命令操作**。
+
 ## 一、它做什么
+
+**现行链路（2026-10-12 阶段 3，实测）**：计划任务 `DSH-KB-DailySync` 每日 21:00 跑
+`tools\pipeline\trigger.cmd`，它只负责"戳一下"——读 `trigger-source.json` 找到插件 → 轮询
+`/status` → `POST /__dsh-kb-sync/pipeline`。整条链在**插件（宿主进程）内**跑完，段 2 用
+`llm.stream`，不再有第二个 DSH 运行时。逐段说明见「一之七」。
+
+<details>
+<summary>旧链路（2026-10-12 阶段 3 之前，已退役，仅供读旧日志时对照）</summary>
 
 ```
 Windows 任务计划程序  DSH-KB-DailySync  每天 21:00
@@ -25,6 +39,8 @@ Windows 任务计划程序  DSH-KB-DailySync  每天 21:00
                  · 财务事实候选（finance-digest）
              2b  本地脚本校验并应用，然后重建知识库与健康档案
 ```
+
+</details>
 
 **两个领域的提炼规则**（硬性规则都写在 `headless-prompt.md` 里）：
 
@@ -327,13 +343,9 @@ Node 退出期噪声、不算失败；② 只有在输出里**出现 `AUTH_UNAUT
 
 ## 三、启用 / 停用
 
-```cmd
-REM 启用段 2（建议先按第五节验证一次再启用）
-type nul > D:\dsh\dsh-kb-sync\tools\pipeline\ENABLE-SEGMENT-2.flag
-
-REM 停用段 2
-del D:\dsh\dsh-kb-sync\tools\pipeline\ENABLE-SEGMENT-2.flag
-```
+> ⚠️ **2026-10-12 阶段 3 起 `ENABLE-SEGMENT-2.flag` 已退役**（连同 `sync-daily.cmd` / `sync-extract.cmd`
+> 一起进了 `retired\`）：整条链现在是一个插件路由，跑就全跑、没有"只跑段 1"的开关。要停就停任务
+> （下面的 `Disable-ScheduledTask`），或者在控制页用「只校验」按钮代替「跑并落盘」。
 
 ```powershell
 # 看任务状态
@@ -341,7 +353,8 @@ Get-ScheduledTaskInfo -TaskName "DSH-KB-DailySync"
 
 # 立即手动跑一次（不需要等 21:00）
 Start-ScheduledTask -TaskName "DSH-KB-DailySync"
-# 或直接跑脚本：cmd /c "D:\dsh\dsh-kb-sync\tools\pipeline\sync-daily.cmd"
+# 或直接跑触发器：cmd /c "D:\dsh\dsh-kb-sync\tools\pipeline\trigger.cmd"
+#（它会 POST 到插件；插件没在跑就会等约 3 分钟后 exit 3，并在 LAST-SYNC.txt 留一行）
 
 # 改时间（例：改成每天 22:30）
 Set-ScheduledTask -TaskName "DSH-KB-DailySync" -Trigger (New-ScheduledTaskTrigger -Daily -At 22:30)

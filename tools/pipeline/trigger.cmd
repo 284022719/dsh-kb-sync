@@ -32,8 +32,24 @@ REM trigger.json. Nothing here guesses a port.
 set "HINT2=%USERPROFILE%\.dsh\profiles\desktop\node_modules\dsh-kb-sync\tools\pipeline\trigger-source.json"
 set "LOG=%PIPE_DIR%\trigger.log"
 
+REM Where the human-visible status line goes. The plugin's own data dir is the
+REM authority (freshness is read from this same file), so prefer the picked hint's
+REM dataDir and fall back to the source tree's data dir. Format of each line:
+REM <date time>  <status-kind>  <detail> -- same naive-local shape the retired
+REM .cmd chain used, which is what the plugin's reader parses.
+set "STATE=%PIPE_DIR%\..\..\data\import\LAST-SYNC.txt"
+for %%f in ("%STATE%") do set "STATE=%%~ff"
+if not exist "%STATE%" set "STATE_FALLBACK=1"
+
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format s"') do set "STAMP=%%i"
 echo [%STAMP%] trigger start (pipe=%PIPE_DIR%) >> "%LOG%"
+
+REM Size of the state file just before the POST. If it grows afterwards, the
+REM plugin itself wrote the outcome line (its writeStatusLine) and this file must
+REM NOT add a second line for the same run. If it does not grow, nothing was
+REM reported - which is exactly the silent case this block exists for.
+set "STATE_BEFORE="
+if exist "%STATE%" for %%s in ("%STATE%") do set "STATE_BEFORE=%%~zs"
 
 REM ---- one PowerShell block: pick a usable hint, wait for the host, POST, report ----
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
@@ -75,4 +91,35 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 set "RC=%ERRORLEVEL%"
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format s"') do set "STAMP=%%i"
 echo [%STAMP%] trigger done rc=%RC% >> "%LOG%"
+
+REM ---- status line for humans + the freshness gate (never let this change RC) ----
+for /f %%i in ('powershell -NoProfile -Command "$h='%HINT2%'; if (Test-Path $h) { try { $c = Get-Content -Raw -Encoding UTF8 $h | ConvertFrom-Json; if ($c.dataDir) { $d = Join-Path $c.dataDir 'LAST-SYNC.txt'; if (Test-Path (Split-Path $d -Parent)) { Write-Output $d } } } catch { } }"') do set "STATE=%%i"
+set "STATE_AFTER="
+if exist "%STATE%" for %%s in ("%STATE%") do set "STATE_AFTER=%%~zs"
+set "KIND=trigger-failed"
+set "DETAIL=rc=%RC% see trigger.log"
+if "%RC%"=="0" set "KIND=chain-ok"
+if "%RC%"=="0" set "DETAIL=ok via trigger.cmd"
+if "%RC%"=="1" set "KIND=chain-failed"
+if "%RC%"=="1" set "DETAIL=chain failed rc=1 see trigger.log"
+if "%RC%"=="2" set "KIND=trigger-no-hint"
+if "%RC%"=="2" set "DETAIL=no usable trigger hint: start DSH once (or resync plugin snapshot), then rerun"
+if "%RC%"=="3" set "KIND=trigger-no-host"
+if "%RC%"=="3" set "DETAIL=host did not answer /status within ~3 min - is the DSH app running?"
+set "SKIPPED="
+if "%RC%"=="0" for /f "delims=" %%s in ('findstr /c:"chain skipped" "%LOG%"') do set "SKIPPED=1"
+if defined SKIPPED set "KIND=chain-skipped"
+if defined SKIPPED set "DETAIL=chain returned skipped (freshness gate 6h; use the control page button to force)"
+set "NEED_LINE=1"
+if not defined STATE set "NEED_LINE="
+if not "%STATE_BEFORE%"=="%STATE_AFTER%" set "NEED_LINE="
+if not defined NEED_LINE goto :no_status_line
+REM One call, and only one format string with no colon / parenthesis in it: cmd
+REM treats those inside a `for /f ('...')` command as syntax. The 's' format gives
+REM 2026-10-12T04:52:33, which cmd splits back into the space-separated shape the
+REM plugin's LAST-SYNC reader parses (older attempts broke both ways on 2026-10-12).
+for /f "tokens=1,2 delims=T" %%a in ('powershell -NoProfile -Command "Get-Date -Format s"') do set "WHEN=%%a %%b"
+if not defined WHEN set "WHEN=%DATE% %TIME:~0,8%"
+echo %WHEN%  %KIND%  %DETAIL%>> "%STATE%"
+:no_status_line
 exit /b %RC%
