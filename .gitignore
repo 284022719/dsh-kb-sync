@@ -20,3 +20,6 @@ tools/pipeline/trigger.log
 tools/pipeline/health-selection.json
 tools/pipeline/specialties-map.json
 tools/pipeline/attic/
+
+# 开发依赖（只有 typescript，用来跑类型检查）与截图生成器的临时目录
+node_modules/

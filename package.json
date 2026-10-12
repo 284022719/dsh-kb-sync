@@ -28,8 +28,12 @@
   ],
   "type": "module",
   "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "exports": {
-    ".": "./lib/index.js",
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
     "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
@@ -85,6 +89,10 @@
   "scripts": {
     "test": "node --test",
     "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/locale.js && node --check lib/page.js && node --check lib/deepseek.js && node --check lib/export.js && node --check lib/pipeline.js && node --check lib/process.js && node --check lib/store.js && node --check tools/pipeline/recon-update.mjs && node --check tools/pipeline/update-from-api.mjs && node --input-type=module -e \"await import('./lib/index.js'); console.log('import ok')\"",
+    "check:types": "tsc --noEmit -p tsconfig.json",
     "pack:check": "npm pack --dry-run"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }

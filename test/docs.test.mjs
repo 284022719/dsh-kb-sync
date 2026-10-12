@@ -101,3 +101,19 @@ test('screenshots.json 里的截图真实存在、是 PNG、且进了发布包',
   assert.ok(read('README.md').includes(list[0]), 'README.md 应嵌入第一张截图')
   assert.ok(read('README.en.md').includes(list[0]), 'README.en.md 也应嵌入它')
 })
+
+test('类型声明接线完整：types 字段、exports.types、文件存在、被 tsconfig 覆盖', () => {
+  const pkg = JSON.parse(read('package.json'))
+  assert.equal(pkg.types, './lib/index.d.ts', 'package.json 应有指向 lib/index.d.ts 的 types 字段')
+  assert.equal(pkg.exports['.'].types, './lib/index.d.ts', 'exports["."] 应有 types 条件')
+  assert.ok(pkg.files.includes('lib'), 'files 含 lib/ 才会把声明一起发布')
+  assert.ok(pkg.scripts['check:types'], 'package.json 应有 check:types 脚本')
+  assert.ok(pkg.devDependencies?.typescript, 'typescript 应声明在 devDependencies（只有它在用）')
+  assert.ok(existsSync(join(ROOT, 'lib', 'index.d.ts')), 'lib/index.d.ts 应存在')
+  // 放在 types/ 而不是 test/：`node --test` 会把 test/ 目录下的 .ts 也当测试文件跑（Node 24 会剥类型）。
+  assert.ok(existsSync(join(ROOT, 'types', 'usage.ts')), 'types/usage.ts 应存在（正例+反例都用一遍公开面）')
+  const tsconfig = JSON.parse(read('tsconfig.json'))
+  assert.ok(tsconfig.include.some((p) => p.includes('lib/index.d.ts')), 'tsconfig 应覆盖声明文件')
+  assert.ok(tsconfig.include.some((p) => p.includes('types')), 'tsconfig 应覆盖类型用例')
+  assert.equal(tsconfig.compilerOptions.strict, true, '类型检查应当是 strict 的，否则等于没查')
+})

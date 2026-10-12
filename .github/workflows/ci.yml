@@ -1,4 +1,4 @@
-# 本仓库零运行依赖，所以不需要 npm ci；直接跑测试与检查。
+# 本仓库零**运行**依赖；devDependencies 只有一个 typescript（类型检查用），所以先装再跑。
 #
 # 两个平台是刻意的：插件里有一条 POSIX 执行分支（`/bin/sh <script>`、`.ps1` 走 pwsh），
 # Windows 之外的 runner 才验得到它。矩阵取 Node 20（engines 下限）/ 22 / 24。
@@ -22,9 +22,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+          cache: npm
+      - name: 安装开发依赖（只有 typescript）
+        run: npm ci --no-audit --no-fund
       - name: 单元测试
         run: npm test
       - name: 语法与 import 冒烟
         run: npm run check
+      - name: 类型检查（lib/index.d.ts + types/usage.ts）
+        run: npm run check:types
       - name: 发布包内容（顺带拦住个人数据/多余文件）
         run: npm run pack:check
+

@@ -59,3 +59,20 @@ if ($bad) { "❌ 包内出现疑似个人数据：$($bad -join ', ')" } else { "
 
 > ⚠️ **提交里的作者邮箱会随推送公开**（GitHub 会把它显示在每次提交上）。介意的话在推送前改成
 > GitHub 的 noreply 地址（`Settings → Emails` 里那一串），或在 `git config user.email` 里换掉。
+
+## 五、推送之后（GitHub 侧）
+
+清单按重要性排，前两条不做等于"发了个没人能发现的东西"：
+
+| # | 事项 | 怎么做 / 判据 |
+|---|---|---|
+| 1 | **给仓库加 topic `dsh-plugin`** | 社区清单靠 GitHub topic 收录（应用里搜的就是这个字符串）；网页 Settings → Topics，或 `gh api -X PUT repos/:owner/:repo/topics -f names[]=dsh-plugin -f names[]=deepseek-harness` |
+| 2 | **确认 CI 绿** | 推完看 Actions：`ubuntu + windows × Node 20/22/24` 六个作业。**Linux 那条同时验证了 POSIX 执行分支**（本机 WSL/Docker 起不来，这条是唯一的平台验证） |
+| 3 | **打 tag + Release** | `git tag -a v0.1.0 release/0.1.0 -m "dsh-kb-sync 0.1.0"` → `git push origin v0.1.0`；再用 `gh release create v0.1.0 --notes-file CHANGELOG.md`（或直接贴那一节） |
+| 4 | 检查 README 首图 | GitHub 上 `assets/screenshots/preview-01-control-page.png` 要能显示（相对路径 ✓，且图已在仓库里） |
+| 5 | 可选：发 npm | `npm publish --access public`（包名 `dsh-kb-sync`）。发布前跑一遍第三节的清单；`files` 白名单已经只含可公开内容 |
+| 6 | 可选：仓库描述 | 用 `package.json` 的 `description`；主页指向 npm 或 README 锚点 |
+
+> 发布后如果还要改内容：**新提交的树里也不能出现第一节那些东西** —— `.gitignore` 已经拦住，
+> 但历史上曾经出现过的 blob 不会因为新提交而消失（见第三节第 1 条）。
+

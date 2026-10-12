@@ -273,13 +273,14 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
 ## 开发
 
 ```sh
-npm test           # node --test：全部 73 个用例
+npm test           # node --test：全部 74 个用例
                    #   插件路由/同源守卫/越界拒绝/argv 构造/凭据文件不读正文/时间口径/语言接线（27）
                    # + 客户端半部契约：加载 id、字典中英对齐、settings.section 注册、守卫头（8）
                    # + 多语言：译文表完整、键对齐、占位符一致、英文页无未翻译中文、内联脚本可解析（8）
                    # + 段 2 的 JSON 修复与出件合并（15）+ 整链的阶段判定（9）
-                   # + 文档一致性：本地链接、路由表、script 名、用例数、截图存在且是 PNG（6）
+                   # + 文档一致性：本地链接、路由表、script 名、用例数、截图、类型接线（7）
 npm run check      # 逐文件语法检查 lib/*.js（含 client.js / locale.js）+ 管线两个入口 + ESM import 冒烟
+npm run check:types # tsc --noEmit：编译 lib/index.d.ts + types/usage.ts（需先 npm install，仅开发期）
 npm run pack:check # npm pack --dry-run：看发布包内容
 node tools/make-screenshots.mjs   # 重新生成 README 里的截图（起假数据演示服务 + 无头 Chrome）
 ```
