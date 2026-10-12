@@ -8,7 +8,7 @@
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -184,4 +184,63 @@ test('request() 把非 JSON 响应当成错误，而不是静默成功', async (
   globalThis.fetch = async () => ({ status: 403, json: async () => { throw new Error('not json') } })
   t.after(() => { globalThis.fetch = realFetch })
   await assert.rejects(() => request('/status'), /HTTP 403/)
+})
+
+/**
+ * 下面这条照**宿主自己的装配规则**写判据（不是照同级插件的习惯）：
+ * 依据是本机 DSH 实现里的 `@deepseek-ai/dsh-client-modules`（`resolveMeta()` / `parseDshClient()` /
+ * `clientExportOf()` / `graphRow()`）与官方模板 `dsh-agent-preset/skills/cordis-plugin-development/
+ * templates/decoration/client.js`。宿主任一条不满足时的真实后果：**模块被静默跳过**（`resolveMeta` 返回 null）
+ * 或**直接抛错**（声明 malformed / 没有 `./client` 导出 / 条目不属于任何 batch）——前者在界面上表现为
+ * "设置里根本没有这一节"，很难查。所以这里把每条都在 CI 里钉住。
+ */
+test('客户端半部满足宿主 client-modules 的装配要求（逐条照宿主实现）', () => {
+  const pkg = JSON.parse(readFileSync(join(HERE, '..', 'package.json'), 'utf8'))
+  const decl = pkg.dsh?.client
+
+  // ① 有声明、且平台是 web —— 不是 web 宿主直接跳过这一包
+  assert.ok(decl, 'package.json 必须有 dsh.client 声明')
+  assert.equal(decl.platform, 'web', '宿主只服务 platform === "web" 的客户端半部')
+
+  // ② 字段类型 —— 宿主 parseDshClient() 对 inject/external/immediately 逐项校验，不合法直接抛
+  for (const field of ['inject', 'external']) {
+    if (decl[field] !== undefined) {
+      assert.ok(Array.isArray(decl[field]) && decl[field].every((s) => typeof s === 'string'), `dsh.client.${field} 必须是字符串数组`)
+    }
+  }
+  if (decl.immediately !== undefined) assert.equal(typeof decl.immediately, 'boolean', 'dsh.client.immediately 必须是布尔')
+
+  // ③ exports["./client"] 必须能解析成路径（宿主的 clientExportOf：字符串，或带字符串 default 的对象；
+  //    声明了 dsh.client 却没有这个导出，宿主会抛 "declares dsh.client but exports no './client' bundle"）
+  const clientExport = pkg.exports?.['./client']
+  const rel = typeof clientExport === 'string' ? clientExport : clientExport?.default
+  assert.equal(typeof rel, 'string', 'exports["./client"] 必须是字符串或带字符串 default 的对象')
+  assert.ok(existsSync(join(HERE, '..', rel)), `exports["./client"] 指向的文件必须存在：${rel}`)
+
+  // ④ 注册的模块 id 必须**等于包名**（宿主的 graphRow(id) 注释即 "entry id (package name)"，
+  //    manifest 的 entries/batches 都按它索引；对不上 = 条目永远解析不出来）
+  const { definition, plugin } = loadClient()
+  assert.equal(definition.id, pkg.name, '标签 id 必须等于 package.json 的 name')
+
+  // ⑤ factory 必须返回 cordis 插件，且 inject 里有 slots（否则 apply 拿不到槽位服务）
+  assert.ok(Array.isArray(plugin.inject) && plugin.inject.includes('slots'), 'plugin.inject 必须含 slots')
+  assert.equal(typeof plugin.apply, 'function')
+
+  // ⑥ dsh.client.inject 是**加载顺序/预取图**：只该列 DSH 客户端包（提供我要用的服务/槽位），
+  //    **平台种子模块**（react 一族，由 shell 直接提供）不在图里、不该写进去。
+  //    依据：一线包 `dsh-client-ui-settings` 自己 require react，但 inject 只写 `@deepseek-ai/dsh-api-remotes`。
+  const SEEDS = ['react', 'react-dom', 'react/jsx-runtime']
+  const required = [...SRC.matchAll(/require\('([^']+)'\)/g)].map((m) => m[1])
+  for (const name of required) {
+    if (name.startsWith('@deepseek-ai/')) {
+      assert.ok(decl.inject?.includes(name), `${name} 被 require 了，就该写进 dsh.client.inject`)
+    } else {
+      assert.ok(!decl.inject?.includes(name), `${name} 若是平台种子模块就不该写进 dsh.client.inject`)
+      assert.ok(SEEDS.includes(name), `客户端半部只应从平台种子里 require，别引入新依赖：${name}`)
+    }
+  }
+  // 反向：inject 里列的宿主包必须真的存在（宿主按名字解析 module 图）
+  for (const name of decl.inject ?? []) {
+    assert.ok(typeof name === 'string' && name.startsWith('@deepseek-ai/'), `inject 里只该出现宿主包名：${name}`)
+  }
 })

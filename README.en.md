@@ -127,7 +127,7 @@ Read it like this: the red line is the *necessary* consequence of the pull half 
 
 ## Known limitations
 
-- **One in-app surface, not a full settings page**: `lib/client.js` registers a **Settings → dsh-kb-sync** section (a few status rows plus Pull new / Run full chain / Open control page / Refresh). It is hand-written with no build step, and it does **not** edit configuration. The full control page (search, reading a conversation in place, the per-stage table) is still its own URL.
+- **One in-app surface, not a full settings page**: `lib/client.js` registers a **Settings → dsh-kb-sync** section (a few status rows plus Pull new / Run full chain / Open control page / Refresh). It is hand-written with no build step, and it does **not** edit configuration. The full control page (search, reading a conversation in place, the per-stage table) is still its own URL. The assembly contract is checked item by item against the host implementation (the `__ModuleLoader__.load` id must equal the package name, the accepted forms of `exports["./client"]`, the `settings.section` registration fields, `immediately` being a prefetch hint only) — see [`docs/CLIENT-HALF.md`](docs/CLIENT-HALF.md).
 - **The control page and the in-app section both ship Chinese and English**: the page defaults to Chinese and switches via `?lang=en` or `Accept-Language`; the settings section follows the host locale. **Server-side diagnostics stay Chinese** (`/status` messages, per-stage chain output, the pipeline's own script output) — they are troubleshooting text, not worth translating yet.
 - Requires the host's `subprocess` service; when missing, `/run` and `/doctor` say so explicitly instead of failing silently.
 - State is polled (every 3 s while something runs), not pushed.
@@ -140,7 +140,7 @@ Read it like this: the red line is the *necessary* consequence of the pull half 
 ## Development
 
 ```sh
-npm test        # node --test: 74 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, language wiring, client-half contract, translation-table integrity, doc consistency)
+npm test        # node --test: 75 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, language wiring, client-half contract, translation-table integrity, doc consistency)
 npm run check   # syntax-check every lib file + an ESM import smoke test
 npm run check:types  # tsc --noEmit over lib/index.d.ts + types/usage.ts (needs npm install; dev only)
 npm run pack:check
