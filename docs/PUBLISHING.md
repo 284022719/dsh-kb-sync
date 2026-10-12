@@ -14,16 +14,24 @@
 | `health-selection.json` | 真实会话**标题 + 日期 + 文件路径** | `data/import/health-selection.json` |
 | `pipeline-attic/`（原 `tools/pipeline/attic/`） | 语料分析（`analysis-*`）、接口探针样本（`probe-*`）、一次性脚本 | `data/import/pipeline-attic/` |
 | `specialties-map.json`（代码目录那份） | 由个人语料派生的专题映射（运行时用的是 `data/import/` 那份） | `data/import/pipeline-attic/specialties-map.stale-copy.json` |
-| `config.json` / `tools/pipeline/pipeline.json` | 含本机绝对路径与个人目录布局 | 本机 |
+| `config.json` / `tools/pipeline/pipeline.json` | 含本机绝对路径与个人目录布局（**用户装上后会静默读错数据目录**） | 本机 |
+| `tools/pipeline/trigger.log`、`trigger.json`、`trigger-source.json` | 本机运行日志与触发器的端口事实 | 本机 |
+| `tools/pipeline/retired/` | 退役脚本（留档用，插件不调用；其中一个 `.cmd` 里还有中文） | 仓库里保留 |
 | `.token` / 凭据 | 账号凭据 | `~/.dsh/`（仓库外） |
 
 `.gitignore` 已经有对应条目（`data/`、`config.json`、`pipeline.json`、`health-selection.json`、
-`specialties-map.json`、`tools/pipeline/attic/`）——**这六条别删**。
+`specialties-map.json`、`tools/pipeline/attic/`、`trigger.json`、`trigger-source.json`、`trigger.log`）——**别删**。
+
+> ⚠️ **`.gitignore` 管不住发布包**：`files` 里写了整个 `tools/pipeline` 目录时，npm 会把目录里的**运行时文件**
+> 一起装进去（2026-10-12 实测：`pipeline.json`、`trigger.log`、`retired/` 都进了包）。
+> 而且**有 `files` 字段时 `.npmignore`/`.gitignore` 不生效** —— 唯一的排除手段是在 `files` 里写**取反项**：
+> `"!tools/pipeline/pipeline.json"` 这种。这些取反项已就位，并由 `test/shipped.test.mjs` 钉住。
 
 ## 二、可以公开的（发布包内容）
 
-`package.json` 的 `files` 白名单：`lib/`、`locale/`、`docs/`、`tools/pipeline/`、`cordis.patch.yml`、
-`config.example.json`、`CHANGELOG.md`、`README.md`、`README.en.md`、`LICENSE`。
+`package.json` 的 `files` 白名单：`lib/`、`locale/`、`docs/`、`tools/pipeline/`（含 5 条取反项）、
+`assets/screenshots/`、`screenshots.json`、`cordis.patch.yml`、`config.example.json`、`CHANGELOG.md`、
+`README.md`、`README.en.md`、`LICENSE`。2026-10-12 实测 **55 个文件 / 622 KB**。
 
 注意 **`tools/pipeline/` 是"作者自己的参考流水线"**：里面是通用代码（拉取、重建、检索、体检），
 不含个人数据。别人的用法是把它换成自己的管线目录（`config.pipelineDir`）。
@@ -31,18 +39,22 @@
 ## 三、发布前检查清单
 
 ```sh
-npm test                 # 67 例必须全绿
+npm test                 # 80 例必须全绿
 npm run check            # 语法 + import 冒烟
+npm run check:types      # 类型声明能编译（需先 npm install）
 npm run pack:check       # 看发布包内容
 ```
 
-然后人工过一遍 **包内是否出现个人数据**（这条是机械检查，务必做）：
+然后人工过一遍 **包内是否出现个人数据 / 本机运行时文件**（这条是机械检查，务必做）：
 
 ```powershell
 $j = npm pack --dry-run --json | ConvertFrom-Json
-$bad = $j.files.path | Where-Object { $_ -match 'attic|health-selection|specialties-map|analysis-|probe-|conversations|\.token' }
-if ($bad) { "❌ 包内出现疑似个人数据：$($bad -join ', ')" } else { "✓ 干净" }
+$bad = $j.files.path | Where-Object { $_ -match 'attic|health-selection|specialties-map|analysis-|probe-|conversations|\.token|pipeline\.json|trigger\.(log|json)|trigger-source|retired' }
+if ($bad) { "❌ 包内出现不该发布的东西：$($bad -join ', ')" } else { "✓ 干净（2026-10-12 实测 55 个文件）" }
 ```
+
+> 这条正则 2026-10-12 才补全：此前漏了 `pipeline.json` / `trigger.log` / `retired`，它们确实进过包
+> （`test/shipped.test.mjs` 现在会拦住回归）。
 
 还有两件与"内容"无关但同样会卡住发布的事：
 

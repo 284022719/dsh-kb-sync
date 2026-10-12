@@ -10,7 +10,7 @@
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -75,9 +75,12 @@ test('发布白名单里含两份 README、CHANGELOG 与 docs', () => {
 })
 
 test('README 里的测试用例数与实际一致', () => {
-  // 这条防的是"加了用例忘了改文档"：从测试文件里数 `test(` 的个数。
-  const count = ['test/plugin.test.mjs', 'test/client.test.mjs', 'test/locale.test.mjs', 'test/process.test.mjs', 'test/pipeline.test.mjs', 'test/docs.test.mjs']
-    .map((f) => (read(f).match(/^test\(/gm) ?? []).length)
+  // 这条防的是"加了用例忘了改文档"：**动态**发现 test/*.test.mjs（写死清单会漏掉新文件——2026-10-12 就漏过），
+  // 再数每个文件里顶层 `test(` 的个数。
+  const testFiles = readdirSync(join(ROOT, 'test')).filter((f) => /\.test\.mjs$/.test(f))
+  assert.ok(testFiles.length >= 3, `应当发现多个测试文件，实际 ${testFiles.length}`)
+  const count = testFiles
+    .map((f) => (read(`test/${f}`).match(/^test\(/gm) ?? []).length)
     .reduce((a, b) => a + b, 0)
   const zh = read('README.md')
   const en = read('README.en.md')
