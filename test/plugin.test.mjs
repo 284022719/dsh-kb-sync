@@ -196,6 +196,36 @@ test('GET / serves the control page from the plugin prefix', async () => {
   assert.equal(res.body.includes('<script src='), false)
 })
 
+test('the control page follows ?lang= and falls back through Accept-Language', async () => {
+  const { root, kbDir } = makeRoot()
+  const host = boot({ root, kbDir })
+
+  const zh = await request(host, { url: `${PREFIX}/` })
+  assert.match(zh.body, /<html lang="zh-CN">/)
+  assert.match(zh.body, /刷新状态/)
+
+  const en = await request(host, { url: `${PREFIX}/?lang=en` })
+  assert.match(en.body, /<html lang="en">/)
+  assert.match(en.body, />Refresh</, '按钮文案应是英文')
+  assert.match(en.body, />Search</)
+  // 注意：中文 msgid 仍会出现在内联字典里（浏览器端要靠它查表），所以"英文页无残留中文"这条
+  // 由 test/locale.test.mjs 的剥离式断言负责，这里只验接线。
+
+  const byHeader = await request(host, { url: `${PREFIX}/`, headers: { 'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8' } })
+  assert.match(byHeader.body, /<html lang="en">/)
+
+  // `?lang=` 优先于 Accept-Language
+  const preferQuery = await request(host, { url: `${PREFIX}/?lang=zh`, headers: { 'accept-language': 'en-US,en;q=0.9' } })
+  assert.match(preferQuery.body, /<html lang="zh-CN">/)
+
+  const unknown = await request(host, { url: `${PREFIX}/?lang=de`, headers: { 'accept-language': 'fr-FR' } })
+  assert.match(unknown.body, /<html lang="zh-CN">/, '不认识的语言回落中文')
+
+  // 语言参数不会变成注入点
+  const hostile = await request(host, { url: `${PREFIX}/?lang=${encodeURIComponent('en"><script>x</script>')}` })
+  assert.equal(hostile.body.includes('<script>x</script>'), false)
+})
+
 test('status reports paths, token age from mtime, last sync and newest log', async () => {
   const { root, kbDir } = makeRoot({ tokenAgeDays: 25 })
   const host = boot({ root, kbDir })

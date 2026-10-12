@@ -58,7 +58,9 @@ Most-used keys: `root` (your pipeline root; `syncScript` / `logDir` / `lastSyncF
 
 Open **`http://127.0.0.1:<your DSH web port>/__dsh-kb-sync/`** (same port as the GUI). The page is a toolbar plus five numbered sections, with four read-only status cards below.
 
-> You do not have to open the page: **Settings → dsh-kb-sync** in the app carries the same status summary (configuration, pipeline root, knowledge base, credential age, size, activity) and three actions — **Pull new**, **Run full chain**, **Open control page**. It follows the host UI language (Chinese / English dictionaries) and deliberately offers **no config editing** (settings are resolved once when the plugin loads, so an editable form would lie until the next restart).
+> You do not have to open the page: **Settings → dsh-kb-sync** in the app carries the same status summary (configuration, pipeline root, knowledge base, credential age, size, activity) and three actions — **Pull new**, **Run full chain**, **Open control page**. It follows the host UI language and deliberately offers **no config editing** (settings are resolved once when the plugin loads, so an editable form would lie until the next restart).
+
+> **Language**: the control page is Chinese by default; `?lang=en` forces English, and without the parameter it follows the browser's `Accept-Language` (unknown languages fall back to Chinese). There is a switcher in the top-right corner. Chinese is the **source language** — the Chinese sentences in the page *are* the keys of the translation table (`locale/en.json`), and a missing translation falls back to the Chinese source, so adding a language never requires touching page code.
 
 **① Web login state** — paste the `userToken` once. It goes into the DSH credential service only; the plugin never writes it anywhere and it never appears in a log or response.
 
@@ -121,9 +123,9 @@ Read it like this: the red line is the *necessary* consequence of the pull half 
 ## Known limitations
 
 - **One in-app surface, not a full settings page**: `lib/client.js` registers a **Settings → dsh-kb-sync** section (a few status rows plus Pull new / Run full chain / Open control page / Refresh). It is hand-written with no build step, and it does **not** edit configuration. The full control page (search, reading a conversation in place, the per-stage table) is still its own URL.
+- **The control page and the in-app section both ship Chinese and English**: the page defaults to Chinese and switches via `?lang=en` or `Accept-Language`; the settings section follows the host locale. **Server-side diagnostics stay Chinese** (`/status` messages, per-stage chain output, the pipeline's own script output) — they are troubleshooting text, not worth translating yet.
 - Requires the host's `subprocess` service; when missing, `/run` and `/doctor` say so explicitly instead of failing silently.
 - State is polled (every 3 s while something runs), not pushed.
-- **The control page UI text is Chinese**; the in-app settings section ships Chinese and English dictionaries and follows the host locale.
 - **Incremental pull can only ever see the newest 100 conversations**: the list endpoint caps `count` at 100 and ignores paging parameters (verified 2026-10-12: `count=101` → `ILLEGAL_COUNT`; `page` / `offset` / `seq_id` / `cursor` ignored; `POST` → 405). Complete history comes from the full backfill.
 - Verified on Windows + DSH 0.2.0-rc.2: control page, `/status`, `/doctor`, out-of-bounds and cross-site refusal, the chain / segment 2 / full backfill from the page. The POSIX execution branch is written but **not** tested on a real POSIX host.
 - `userToken` expires (hours to days): pulls then fail and you paste a new one. It is your account credential — do not share it.
@@ -133,7 +135,7 @@ Read it like this: the red line is the *necessary* consequence of the pull half 
 ## Development
 
 ```sh
-npm test        # node --test: 58 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, client-half contract)
+npm test        # node --test: 67 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, language wiring, client-half contract, translation-table integrity)
 npm run check   # syntax-check every lib file + an ESM import smoke test
 npm run pack:check
 ```

@@ -22,11 +22,12 @@ First public release: one plugin with three capability blocks (pull / orchestrat
 
 - 同源控制页 `/__dsh-kb-sync/`（**14 条路由**）：状态、知识库规模、最近日志尾部、体检命令输出，以及"运行已有同步脚本 / 跑整链 / 刷新状态"。
 - **应用内设置分节**（`lib/client.js`，手写客户端半部、无构建步骤）：**设置 → dsh-kb-sync** 显示状态摘要并给出「拉取增量 / 跑整链 / 打开控制页 / 刷新」；跟随宿主界面语言（中英字典）；**不提供配置编辑**（配置在加载时解析一次）。
+- **控制页双语**（`lib/locale.js` + `locale/en.json`）：默认中文，`?lang=en` 或浏览器 `Accept-Language` 切换，右上角可换；中文是源语言（页面里的中文即译文表的键），缺译回落中文。同时修掉页面里"计划任务 21:00 打的就是这条链"这句过期文案。**服务端诊断文案仍是中文**（排错信息，暂不翻）。
 - 安全模型：Host 必须环回（挡 DNS rebinding）、`Sec-Fetch-Site` 非同源 403、写操作必须带 `x-dsh-kb-sync: 1`、日志文件名白名单且必须落在日志目录内、argv 全显式不拼 shell。
 - 配置**四条通路**（loader `config` → 环境变量 → 用户设置文件 → 插件内 `config.json`），**改完要重启应用**（加载时解析一次并缓存）。
 - 默认**自包含**：知识库落在插件自己的 `data/kb/`，不与别的脚本抢目录。
 
-> EN: a same-origin control page with 14 routes; **plus a hand-written client half** that registers a Settings → dsh-kb-sync section (status summary and three actions) with Chinese/English dictionaries, and no config editing. Loopback-only Host plus a `Sec-Fetch-Site` check, a custom header on writes, a log-name allowlist, and explicit argv. Four config channels with a documented precedence; settings are resolved once at load, so a restart is required after changing them. Self-contained by default (the knowledge base lives inside the plugin folder).
+> EN: a same-origin control page with 14 routes; **plus a hand-written client half** that registers a Settings → dsh-kb-sync section (status summary and three actions) with Chinese/English dictionaries, and no config editing; **the control page itself is bilingual too** (`?lang=en`, `Accept-Language`, in-page switcher) with Chinese as the source language, while server-side diagnostics remain Chinese. Loopback-only Host plus a `Sec-Fetch-Site` check, a custom header on writes, a log-name allowlist, and explicit argv. Four config channels with a documented precedence; settings are resolved once at load, so a restart is required after changing them. Self-contained by default (the knowledge base lives inside the plugin folder).
 
 ### 段 2 判断（进程内）· Segment 2, in process
 
