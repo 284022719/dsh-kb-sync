@@ -71,5 +71,8 @@ First public release: one plugin with three capability blocks (pull / orchestrat
 - **类型声明**（`lib/index.d.ts` + `package.json` 的 `types` / `exports["."].types`）：配置对象、`resolveSettings()` 的有效设置、`/status` 负载、插件本体都有类型；刻意不 import 宿主包类型（`@deepseek-ai/cordis` 是可选 peer，消费者不该为了看类型而装它）。用 `npm run check:types`（`tsc --noEmit`，`strict`）编译 `types/usage.ts` 验证——那里既有正例也有 `@ts-expect-error` 反例，**声明退化成 `any` 同样会失败**。这是本仓库唯一的 devDependency（typescript），运行依赖仍为零。
 - 发布须知补「推送之后」清单：GitHub topic `dsh-plugin`（社区清单靠它收录）、确认 CI 绿（Linux 那条是唯一的 POSIX 平台验证）、打 tag / Release、可选 npm publish。
 - **客户端半部的装配契约已对宿主实现逐条核对**（读 `app.asar` 里的 `@deepseek-ai/dsh-client-modules`：`resolveMeta()` / `parseDshClient()` / `clientExportOf()` / `graphRow()`，以及官方插件模板）：`dsh.client.platform` 必须是 `web`（否则**静默跳过**）、`exports["./client"]` 只接受字符串或带字符串 `default` 的对象、产物里 `__ModuleLoader__.load({id})` 的 **id 必须等于包名**、`settings.section` 的注册字段与宿主自带账户分节逐字段一致、而 `immediately` 只是**预取提示**（前端唯一用法是 `prefetchImmediateTier()`）。结论写进 [`docs/CLIENT-HALF.md`](docs/CLIENT-HALF.md)，并用 `test/client.test.mjs` 的最后一条用例把这些规则钉在 CI 里（顺带纠正一条过严的判据：`react` 是平台种子，不该出现在 `dsh.client.inject`）。
+- **安装链路也对宿主实现核了一遍**（读 @deepseek-ai/dsh-plugin-manager 与官方插件模板）：dsh.bundle.patch 读不到会**抛错**、只有 **insert** 行会被插入（没有 insert 但带 id 的行是 nable/disable 用的 *override*）、插入行的 **
+ame 是 loader 要 import 的模块说明符**，而它解析出的包名**同时**是客户端半部在 boot manifest 里的行 id。三处必须一致：**patch 行的 
+ame = 包名 = __ModuleLoader__.load({id}) 的 id**。结论见 [`docs/INSTALL-PATH.md`](docs/INSTALL-PATH.md)，并用测试钉住可机械检查的部分（改包名/改行忘同步就失败）。
 
 > EN: usage and boundaries in both READMEs; per-capability disclosure in `docs/CAPABILITY-DISCLOSURE.md`; the pipeline, its schedule and the rebuild commands in `tools/pipeline/README.md`.

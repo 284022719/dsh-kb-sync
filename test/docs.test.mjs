@@ -117,3 +117,37 @@ test('类型声明接线完整：types 字段、exports.types、文件存在、�
   assert.ok(tsconfig.include.some((p) => p.includes('types')), 'tsconfig 应覆盖类型用例')
   assert.equal(tsconfig.compilerOptions.strict, true, '类型检查应当是 strict 的，否则等于没查')
 })
+
+/**
+ * 安装链路（见 docs/INSTALL-PATH.md）：patch 行 → loader 说明符 → 包目录 → 两侧代码。
+ * 这条链上任一环写错都是**静默失败**（插件不加载 / 设置里没有那一节），所以把可机械检查的部分钉住。
+ */
+test('安装行与包元数据一致：patch ↔ package.json ↔ 包名', () => {
+  const pkg = JSON.parse(read('package.json'))
+
+  // ① bundle patch 声明指向的文件必须存在（宿主读不到 patch 会抛，行也就不会被插入）
+  assert.equal(pkg.dsh?.bundle?.patch, './cordis.patch.yml', 'dsh.bundle.patch 应指向 ./cordis.patch.yml')
+  assert.ok(existsSync(join(ROOT, 'cordis.patch.yml')), 'cordis.patch.yml 必须存在')
+  assert.ok(pkg.files.includes('cordis.patch.yml'), 'cordis.patch.yml 必须随包发布（files 白名单）')
+
+  // ② patch 顶层是 YAML 序列，且恰好一个 insert 行、id/name 都等于包名
+  //    （宿主只插 `insert` 行；没有 insert 但带 id 的行按 override 处理，那是 enable/disable 用的）
+  const patch = read('cordis.patch.yml').split('\n').filter((line) => !line.trim().startsWith('#'))
+  assert.equal(patch[0].trim(), '- insert:', 'patch 顶层应以 `- insert:` 开头')
+  const ids = patch.filter((line) => /^\s*-\s*id:\s*/.test(line))
+  const names = patch.filter((line) => /^\s*name:\s*/.test(line))
+  assert.equal(ids.length, 1, 'patch 里应恰好有一个插入行')
+  assert.equal(names.length, 1, 'patch 里应恰好有一个 name')
+  assert.equal(ids[0].split(':').slice(1).join(':').trim().replace(/^['"]|['"]$/g, ''), pkg.name, '插入行 id 必须等于包名')
+  assert.equal(names[0].split(':').slice(1).join(':').trim().replace(/^['"]|['"]$/g, ''), pkg.name, '插入行 name 必须等于包名（宿主用它解析包目录，也是客户端注册 id）')
+
+  // ③ 两侧入口都要真实存在：宿主半部由 loader import，客户端半部由 client-modules 读文件
+  const mainRel = typeof pkg.exports?.['.'] === 'string' ? pkg.exports['.'] : pkg.exports?.['.']?.default
+  assert.equal(typeof mainRel, 'string', 'exports["."] 应给出宿主半部入口')
+  assert.ok(existsSync(join(ROOT, mainRel)), `宿主半部入口必须存在：${mainRel}`)
+  const clientRel = typeof pkg.exports?.['./client'] === 'string' ? pkg.exports['./client'] : pkg.exports?.['./client']?.default
+  assert.ok(existsSync(join(ROOT, clientRel)), `客户端半部入口必须存在：${clientRel}`)
+
+  // ④ 宿主版本闸门：插件管理器会读 engines.dsh
+  assert.ok(typeof pkg.dsh?.engines?.dsh === 'string' && pkg.dsh.engines.dsh.length > 0, 'dsh.engines.dsh 应有值')
+})
