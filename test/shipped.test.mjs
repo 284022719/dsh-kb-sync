@@ -11,7 +11,7 @@
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -85,4 +85,31 @@ test('运行时文件与 retired 不随包发布（files 取反项在位）', ()
 test('随包目录里没有漏进来的备份/临时文件', () => {
   const junk = files.filter((f) => /\.(bak|tmp|orig|rej)$/i.test(f) || /~$/.test(f) || /\.backup-\d/.test(f))
   assert.deepEqual(junk, [], `这些像是临时文件，不该留在随包目录里：\n  ${junk.join('\n  ')}`)
+})
+
+/**
+ * 脚本里写死的**同目录引用**必须真实存在。
+ *
+ * 动机（2026-10-12 实测）：把 `tools/pipeline/attic/` 搬去 `data/import/pipeline-attic/` 时，
+ * 有 3 处 `join(PIPE_DIR, 'attic', …)` 必须手工改（`build-kb.mjs` 复制 `search.mjs`、
+ * 两个 prep-health 脚本读写中间产物）；漏一处就是"用户跑到那一段才炸"。这条把它变成机械检查。
+ *
+ * 只查**字面量**：`join(PIPE_DIR, 'x.mjs')` / `join(PLUGIN_ROOT, 'x', 'y')`；变量参数（`join(PIPE_DIR, f)`）不硬猜。
+ */
+test('脚本里写死的同目录引用都真实存在（排除用户配置与运行时数据）', () => {
+  // 这些**允许不存在**：用户配置（gitignore 里，新克隆没有）、运行时数据目录、触发器状态。
+  const OPTIONAL = [/^config\.json$/i, /^pipeline\.json$/i, /^trigger/i, /^data[\\/]/i, /^logs?[\\/]/i, /\.token$/i]
+  const refs = []
+  for (const rel of files.filter((f) => /\.(js|mjs)$/.test(f))) {
+    const base = rel.startsWith('tools/pipeline/') ? 'tools/pipeline' : '.'
+    const text = readFileSync(join(ROOT, rel), 'utf8')
+    for (const m of text.matchAll(/join\((PIPE_DIR|PLUGIN_ROOT)\s*,\s*'([^']+)'(?:\s*,\s*'([^']+)')?\)/g)) {
+      const target = m[3] === undefined ? m[2] : `${m[2]}/${m[3]}`
+      if (OPTIONAL.some((re) => re.test(target))) continue
+      refs.push({ file: rel, target, base })
+    }
+  }
+  assert.ok(refs.length >= 5, `应当扫到多处同目录引用，实际 ${refs.length}`)
+  const missing = refs.filter((r) => !existsSync(join(ROOT, r.base, r.target))).map((r) => `${r.file} → ${r.target}`)
+  assert.deepEqual(missing, [], `这些引用在包内不存在（用户跑到那段会炸）：\n  ${missing.join('\n  ')}`)
 })
