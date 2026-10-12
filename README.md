@@ -4,36 +4,42 @@
 
 典型的流水线是「网页端对话历史 → 本地知识库」，但插件本身不关心你同步什么。
 
-> **定位：一个插件，两半能力。**
-> **① 自己拉取**：用你存在 DSH 凭据服务里的网页端 `userToken` 调 chat.deepseek.com，把对话规范化落到本地知识库，并在插件内检索 —— 这一半**读凭据值、会出网**（见下方能力披露，`dsh-trust-check` 判为**红线**）。
-> **② 编排**：起你已有的同步/体检命令、读状态与日志 —— 这一半不读凭据、不出网。
-> 两半都不注入提示词、都不改核心 bundle、都没有安装脚本。
+> **定位：一个插件，三块能力。**
+> **① 自己拉取**：用你存在 DSH 凭据服务里的网页端 `userToken` 调 chat.deepseek.com，把对话规范化落到本地知识库，并在插件内检索 —— 这一块**读凭据值、会出网**（见下方能力披露，`dsh-trust-check` 判为**红线**）。
+> **② 编排**：起你已有的同步/体检命令、读状态与日志 —— 这一块不读凭据、不出网。
+> **③ 段 2 判断**：把管线里「让模型做判断」那一步搬进进程内（准备输入 → 调宿主 `llm` 服务拿一份 JSON → 校验通过才落盘/重建）—— 不读凭据；出网走宿主 `llm` 适配器，域名由你配的提供方决定，插件自己不写死。
+> 三块都不注入提示词、都不改核心 bundle、都没有安装脚本（逐项对照见 [`docs/CAPABILITY-DISCLOSURE.md`](docs/CAPABILITY-DISCLOSURE.md) 第一节）。
 
 ![dsh-kb-sync 用法与边界：浏览器 → 插件路由 → 你的同步命令 → 状态文件与你的产物](docs/architecture.svg)
 
-<sub>整张图就是它的全部作用域：虚线框内是插件（只提供 5 个同源路由、只读状态文件），出网与凭据都在绿色框里 —— 你自己那条命令中。</sub>
+<sub>⚠️ 这张图只画**编排半**（阶段 1 的画法）：虚线框里是插件当时对外的 5 个路由与只读状态文件，出网与凭据都在绿色框里 —— 你自己那条命令中。**拉取半（读凭据、连 chat.deepseek.com）与段 2（调宿主模型）都不在图上**，别把它当成全部作用域；全部路由见下方路由表。</sub>
 
 ## 它做什么 / 不做什么
 
 | | 说明 |
 |---|---|
-| ✅ 做 | 用 DSH 的 `subprocess` 起你配置的命令；读状态文件与日志展示进度；跑你指定的完整性体检命令；全部通过一个本地控制页操作 |
+| ✅ 做（编排半） | 用 DSH 的 `subprocess` 起你配置的命令；读状态文件与日志展示进度；跑你指定的完整性体检命令；全部通过一个本地控制页操作 |
 | ✅ 做（拉取半） | 用 DSH 凭据服务里的 `userToken` 调 chat.deepseek.com：拉会话列表 → 只取新增/续聊的线程（`chat_session.current_message_id` 权威定位末端）→ 规范化成 `conversations/*.md` + `conversations.jsonl` + `catalog.json` → 插件内检索 |
-| ✅ 做（编排半） | 用 DSH 的 `subprocess` 起你配置的命令；读状态文件与日志展示进度；跑你指定的完整性体检命令 |
-| ❌ 不做 | 不把 token 写进任何文件/日志/响应（只进凭据服务）；不访问 chat.deepseek.com 之外的任何地址；不读凭据文件（那个会过期的 `.token`）的正文、只 `stat` 它的修改时间；不注册提示词段落；不改核心 bundle；无安装脚本、无运行依赖 |
+| ✅ 做（段 2） | 进程内跑管线的判断步骤：准备输入 → 调宿主 `llm` 服务拿 JSON → 用管线的 `apply-extraction.mjs` 校验 → 通过才落盘并重建；默认只校验不落盘 |
+| ❌ 不做 | 不把 token 写进任何文件/日志/响应（只进凭据服务）；拉取半不访问 chat.deepseek.com 之外的任何地址（段 2 出网走宿主 `llm` 适配器，地址由宿主配置决定）；不读凭据文件（那个会过期的 `.token`）的正文、只 `stat` 它的修改时间；不注册提示词段落；不改核心 bundle；无安装脚本、无运行依赖 |
 
 ## 目录结构（一个自包含的文件夹）
 
 ```
 dsh-kb-sync/
-├─ lib/                  插件代码：index（路由）/ deepseek（接口）/ export（回填）/ store（落盘）/ page（界面）
+├─ lib/                  插件代码：index（路由+整链）/ deepseek（接口）/ export（回填）/ store（落盘）/ page（界面）/ pipeline（整链判定）/ process（段 2）
 ├─ docs/                 能力披露与架构图
-├─ test/                 单测（node --test，25 例）
+├─ test/                 单测（node --test，49 例）
 ├─ tools/                发布脚本（publish.ps1 / publish.cmd）
 ├─ config.example.json   配置样例 —— 复制成 config.json 就生效（配置跟着代码走）
 ├─ data/kb/              **知识库默认就落在这里**（不入库；可配 outDir 改到别处）
 ├─ package.json / cordis.patch.yml / README.md / LICENSE
 ```
+
+> 上面是**源码仓库**的样子。装好的插件里只有 `lib/`、`docs/`、`tools/pipeline/`、
+> `cordis.patch.yml`、`README.md`、`LICENSE`（`package.json` 的 `files` 白名单；2026-10-12 实测
+> `npm pack --dry-run` 共 112 个文件）—— **`test/`、`tools/publish.*`、`config.example.json` 都不在其中**，
+> 所以下节的样例照抄即可，别去插件目录里找那个文件。
 
 ## 适配你的流水线
 
@@ -45,7 +51,7 @@ dsh-kb-sync/
 | 日志目录（默认 `sync/logs/`） | `/log` 与「最新日志」 | 状态里不显示日志 |
 | 进度文件（默认 `sync/LAST-SYNC.txt`） | 状态里的「最近几次结果」 | 跳过该栏 |
 | 一个会过期的凭据文件（默认 `.token`） | **只读它的 mtime**，换算成「年龄天数 / 是否偏旧」 | 跳过该栏 |
-| 体检命令（默认 `<kbDir>/tools/kb.mjs doctor`） | `/doctor` 按钮 | `/doctor` 返回 `doctor-script-missing`，或把 `doctorScript` 留空即禁用 |
+| 体检命令（默认 `<kbDir>/tools/kb.mjs doctor`） | `/doctor` 按钮 | 找不到脚本时 `/doctor` 返回 `doctor-script-missing`（没有单独的关闭开关；`doctorScript` 留空只会回落到默认路径，不等于禁用） |
 
 > 这些默认值都来自一条真实流水线（`sync/sync-daily.cmd`、`sync/logs/`、`LAST-SYNC.txt`、`.token`、`knowledge-base/tools/kb.mjs`），
 > 但它们**只是默认值**：每一项都能用配置改成你自己的路径与命令，体检命令也可以是任何可执行脚本（`doctorScript` + `doctorArgs`）。
@@ -86,12 +92,14 @@ dsh plugin --profile web add github:<owner>/dsh-kb-sync
     # processProvider: 'deepseek-official'          # 不配就取第一个已注册提供方
     # processModel:    'deepseek-v4-flash'          # 不配就取该提供方目录里的第一个模型
     # processMaxTokens: 4096
+    # —— 段 3（阶段 3：整链的新鲜度闸门）——
+    # chainMinIntervalMs: 21600000                  # 距上次成功不足这么久就整链 skipped（默认 6 小时；页面按钮用 force 绕过）
 ```
 
 **方式二：插件文件夹里的 `config.json`**（推荐——配置跟着代码走，整包拷走也不丢）
 
 ```jsonc
-// <插件目录>/config.json   （可先复制 config.example.json 改名）
+// <插件目录>/config.json   （装好的插件里没有 config.example.json，直接新建这个文件写下面这几项即可）
 { "root": "D:\\path\\to\\pipeline", "outDir": "data/kb", "tokenOldDays": 21 }
 ```
 
@@ -102,7 +110,7 @@ dsh plugin --profile web add github:<owner>/dsh-kb-sync
 { "root": "/srv/pipeline", "tokenOldDays": 14 }
 ```
 
-**方式四：环境变量** `DSH_KB_SYNC_ROOT` / `DSH_KB_SYNC_OUT_DIR`。
+**方式四：环境变量** `DSH_KB_SYNC_ROOT` / `DSH_KB_SYNC_OUT_DIR` / `DSH_PIPELINE_DIR`。
 
 **优先级**：loader `config` → 环境变量 → 用户设置文件 → **插件文件夹里的 `config.json`** → 内置默认。文件缺失或 JSON 坏掉都按空处理（不影响加载），读到哪些会在 `/status` 的 `configFile` 字段里报告（`used` / `localUsed`）。
 
@@ -129,9 +137,9 @@ POSIX 示例（`syncScript` 指向 `.sh` 时用 `/bin/sh` 执行）：
 
 ## 使用
 
-打开 **`http://127.0.0.1:<你的 DSH Web 端口>/__dsh-kb-sync/`**（与 GUI 同一个端口）。页面分三步，另有编排区：
+打开 **`http://127.0.0.1:<你的 DSH Web 端口>/__dsh-kb-sync/`**（与 GUI 同一个端口）。页面 = 顶部一排按钮 + ①–⑤ 五段，另加 4 张不编号的卡（状态 / 知识库 / 最近日志 / 知识库体检）：
 
-**① 网页端登录态** —— 粘贴一次 `userToken`，它只进 DSH 凭据服务（不落明文文件、不进日志/响应）。
+**① 网页端登录态** —— 粘贴一次 `userToken`，它只进 DSH 凭据服务（本机就是 `$DSH_HOME/.credentials.yaml`，由宿主保管；插件自己不把它写进任何文件，日志与响应里也永不带它）。
 
 **② 拉取**
 - **拉取新对话（增量）**：会话列表 → 只取「新增 / 续聊」的线程 → 写 `conversations/*.md` + `conversations.jsonl` + `catalog.json`；续聊就地更新、文件名不变。
@@ -143,9 +151,12 @@ POSIX 示例（`syncScript` 指向 `.sh` 时用 `/bin/sh` 执行）：
 段 2 判断/校验/落盘/重建 → 知识库体检**，每一段都有独立结论、退出码与耗时，页面出表格；
 失败时那一行直接写明原因（`token-expired` / `failed` / `spawn-failed` / `finished-with-crash`）。
 
-- **计划任务只负责"戳一下"**：`DSH-KB-DailySync` → `tools\pipeline\trigger.cmd` → `POST /pipeline`。
+- **计划任务是可选的外部触发器，它只负责"戳一下"**：`DSH-KB-DailySync` → `tools\pipeline\trigger.cmd` → `POST /pipeline`。
   触发器从 `trigger.json`（插件按真实监听端口写）读地址，先轮询 `/status` 等宿主起来（登录时补跑不会误报失败），
   再把逐段结果追加进 `trigger.log`。**它自己不编排任何东西**，`dsh headless` 已完全不在链上。
+  > 本机 2026-10-12 起**已删除该计划任务**（用户取消了每天 21:00 的自动抓取），所以现在整链只有手动入口：
+  > 页面上的「跑整链」按钮，或双击 `tools\pipeline\trigger.cmd`。想恢复自动或换个时间，见
+  > [`tools/pipeline/README.md`](tools/pipeline/README.md) 第三节的重建命令。
 - **新鲜度闸门**：距上次成功不足 `chainMinIntervalMs`（默认 6 小时）时整链返回 `skipped`，
   不再重复拉取与轮转备份；页面按钮走 `force:true` 跳过这个闸门。
 - **通知并入状态页**：整链的结论文案（`chain.report.notify`，与退役的 `notify.ps1` 逐句相同）显示在页面上；
@@ -155,14 +166,14 @@ POSIX 示例（`syncScript` 指向 `.sh` 时用 `/bin/sh` 执行）：
 
 - **只校验（dry-run，不落盘）**：准备输入 → 调宿主 `llm` 服务拿一份 JSON 判断 → 写 `sync/out/` → 跑管线自己的
   `apply-extraction.mjs` 校验。**默认就是这个模式**，用来先看清"会写哪些文件、各几条"。
-- **跑并落盘 + 重建**：校验通过后落盘，并依次重建知识库（`build-kb` / `build-specialties` / `map-specialties`）
+- **跑并落盘 + 重建**：校验通过后落盘，并依次重建知识库（`apply-update-topics` / `build-kb` / `build-specialties` / `map-specialties`）
   与健康档案（`build-health-profile` / `sync-knowledge`）。
 
 为什么值得替换掉 `dsh headless`：不再需要第二个 DSH 运行时、不再需要那份单独的 `.dsh-home` 与凭据副本、
 也不再依赖"工作区只写自己目录内"那套沙箱前提。**模型仍然只做判断、产出仍是先落盘再校验的 JSON** ——
 这条规矩是刻意的：让模型直接改 `health/` 或财务台账，钱的数字悄悄错掉很难发现。
 
-编排区三个按钮仍是：运行已有同步脚本 / 跑知识库体检 / 刷新状态。
+工具栏上的「刷新状态 / 运行已有同步脚本 / 跑知识库体检」这三个按钮仍属编排半（同一排里另两个按钮是拉取）。
 
 | 路由 | 方法 | 作用 |
 |---|---|---|
@@ -198,6 +209,7 @@ npx dsh-trust-check --dir /path/to/dsh-kb-sync --exit-code
 ```
 
 ```
+dir: <path-to-this-repo>
 1 plugin(s) · 1 red · 0 accepted · 0 review · 0 expected · 0 clear
 
 dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
@@ -217,9 +229,9 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
 
 怎么读这份报告（**这次是真有红线，别跳过**）：
 
-- **红线：读凭据值 + 有网络** —— 这是"自己拉取"那一半的必然结果：`credentials.resolve('DEEPSEEK_WEB_TOKEN')` 取出 token，再用 `fetch` 发给 chat.deepseek.com。
-  这条无法通过改代码消除（除非不做拉取）；能做的只有**约束范围**：token 只进 DSH 凭据服务、只在这一次请求里用、永不写进文件/日志/响应；出网目标只有 chat.deepseek.com 一个域名。
-- `fs-write`：写知识库（`conversations/*.md`、`conversations.jsonl`、`catalog.json`），全部落在配置的知识库目录内，越界即拒（有单测）。
+- **红线：读凭据值 + 有网络** —— 这是"自己拉取"那一块的必然结果：`credentials.resolve('DEEPSEEK_WEB_TOKEN')` 取出 token，再用 `fetch` 发给 chat.deepseek.com。
+  这条无法通过改代码消除（除非不做拉取）；能做的只有**约束范围**：token 只进 DSH 凭据服务、只在这一次请求里用、永不写进文件/日志/响应；**拉取半**的出网目标只有 chat.deepseek.com 一个域名（段 2 出网走宿主 `llm` 适配器，见 [`docs/CAPABILITY-DISCLOSURE.md`](docs/CAPABILITY-DISCLOSURE.md) 第一节）。
+- `fs-write`：写知识库（`conversations/*.md`、`conversations.jsonl`、`catalog.json`），全部落在配置的知识库目录内，越界即拒（有单测）。段 2 另有写入（管线的 `sync/out/` 与档案候选 JSON），清单见能力披露第一节。
 - `network (outbound)`：命中来自 `lib/deepseek.js` 里那两个接口调用；外加控制页在浏览器里的同源 `fetch`。
 - `credentials` / `env`：前者是上面那条红线；后者是可选的根目录环境变量。
 - 按该工具的规则，**红线默认应挡住**；你要继续用就得在 **设置 → 插件体检** 里对该插件点"确认风险"（指纹随代码变化会失效，需要重新确认）。
@@ -240,12 +252,14 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
 ## 开发
 
 ```sh
-node --test        # 14 个用例：路由、同源守卫、越界拒绝、argv 构造、凭据文件不读正文、体检命令可配置
+node --test        # 全部 49 个用例：路由/同源守卫/越界拒绝/argv 构造/凭据文件不读正文（25）
+                   #              + 段 2 的 JSON 修复与出件合并（15）+ 整链的阶段判定（9）
+npm test           # 只跑 test/plugin.test.mjs（25 个路由用例）
 ```
 
 ## English summary
 
-A DeepSeek Harness plugin with two halves. **Pull**: it reads the DeepSeek web `userToken` from the DSH credential service, calls chat.deepseek.com, and normalizes conversations into a local knowledge base (markdown + JSONL + catalog) with in-plugin search. **Orchestrate**: it runs and monitors a sync/integrity command you already own. Static capability disclosure (`dsh-trust-check`): **1 red line** — "reads credential values and has network access", which the pull half cannot avoid; the token never leaves the credential service for any file, log, or response, and the only outbound host is chat.deepseek.com.
+A DeepSeek Harness plugin with three capability blocks. **Pull**: it reads the DeepSeek web `userToken` from the DSH credential service, calls chat.deepseek.com, and normalizes conversations into a local knowledge base (markdown + JSONL + catalog) with in-plugin search. **Orchestrate**: it runs and monitors a sync/integrity command you already own. **Segment 2**: it runs the pipeline's judgement step in process through the host `llm` service — prepare the inputs, get one JSON judgement, validate it with the pipeline's own script, and only then write and rebuild. Static capability disclosure (`dsh-trust-check`): **1 red line** — "reads credential values and has network access", which the pull half cannot avoid; the token never leaves the credential service for any file, log, or response, and the pull half's only outbound host is chat.deepseek.com.
 
 ## License
 

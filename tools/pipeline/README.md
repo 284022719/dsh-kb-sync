@@ -8,6 +8,11 @@
 
 把你在外面（手机/公司电脑）用 chat.deepseek.com 产生的对话，**每天自动**吸收进本地知识库。
 
+> **⚠️ 2026-10-12 晚：计划任务 `DSH-KB-DailySync` 已按用户要求删除**（`Unregister-ScheduledTask`）——
+> **本机现在没有自动抓取**，只剩手动入口（控制页「跑整链」，或双击 `trigger.cmd`）。下面凡是写
+> "每天 21:00 / 每天自动"的地方都是删除之前的状态；**重建命令见第三节**，定义备份在
+> `D:\dsh\tmp\DSH-KB-DailySync-backup-20261012\DSH-KB-DailySync.xml`。
+
 > **⚠️ 2026-10-12 阶段 3 之后，本文档的「一」到「一之六」「三」「五」「六」几节描述的是
 > 已被替换的旧链路（`sync-daily.cmd` / `sync-extract.cmd` / `dsh headless` / `ENABLE-SEGMENT-2.flag`
 > / `.dsh-home`）—— 它们现在只在 `retired\` 里躺着。**现行链路看「一之七」**（`trigger.cmd` →
@@ -16,10 +21,13 @@
 
 ## 一、它做什么
 
-**现行链路（2026-10-12 阶段 3，实测）**：计划任务 `DSH-KB-DailySync` 每日 21:00 跑
-`tools\pipeline\trigger.cmd`，它只负责"戳一下"——读 `trigger-source.json` 找到插件 → 轮询
-`/status` → `POST /__dsh-kb-sync/pipeline`。整条链在**插件（宿主进程）内**跑完，段 2 用
-`llm.stream`，不再有第二个 DSH 运行时。逐段说明见「一之七」。
+**现行链路（2026-10-12 阶段 3，实测）**：`tools\pipeline\trigger.cmd` 只负责"戳一下"——读
+`trigger-source.json` 找到插件 → 轮询 `/status` → `POST /__dsh-kb-sync/pipeline`。整条链在
+**插件（宿主进程）内**跑完，段 2 用 `llm.stream`，不再有第二个 DSH 运行时。逐段说明见「一之七」。
+
+**触发方式**：原来由计划任务 `DSH-KB-DailySync`（每天 21:00）调用；**2026-10-12 该任务已删除，现在
+只剩手动**（双击 `trigger.cmd`，或控制页「跑整链」——同一个路由，都带 `force:true` 跳闸门）。
+要恢复自动，用第三节里的重建命令。
 
 <details>
 <summary>旧链路（2026-10-12 阶段 3 之前，已退役，仅供读旧日志时对照）</summary>
@@ -52,7 +60,10 @@ Windows 任务计划程序  DSH-KB-DailySync  每天 21:00
 | 落点 | `health-facts/manual-<日期>.json` | **`finance/data/candidates.jsonl`（只进候选区）** |
 | 是否自动生效 | 是（随后重建档案） | **否——必须由你在财务看板确认后才入账** |
 
-> ⚠️ **财务为什么只写候选、不自动入账**：财务台账的规矩是「每个数字带 `asOf` 与出处、同一指标的多口径全部保留、不合并不取平均」。让模型直接改 `profile.json` / `debts.json` 会破坏这套规矩，而钱的数字一旦悄悄错掉很难发现。所以段 2 只把候选追加到 `candidates.jsonl`。
+> ⚠️ **财务为什么只写候选、不自动入账**：**台账的规矩只有一个家** —— 见
+> `D:\dsh\控制台中心\finance\README.md`「候选不会自动进台账」（每个数字带 `asOf` 与出处、同一指标的多口径
+> 全部保留、不合并不取平均）。让模型直接改 `profile.json` / `debts.json` 会破坏它，而钱的数字一旦悄悄错掉
+> 很难发现。所以段 2 只把候选追加到 `candidates.jsonl`。
 >
 > 候选体积很小、只追加不覆盖；重复抽取会按 `dedupeKey`（topic+label+值+asOf+出处）自动跳过，反复运行不会堆积。
 >
@@ -200,11 +211,11 @@ prep-inbox.mjs（原样复用，输入还是 sync\inbox\）
 
 ## 一之七、整链、调度与通知都归插件了（2026-10-12，方案阶段 3）
 
-**一条链在插件进程里跑完**，计划任务只负责"戳一下"：
+**一条链在插件进程里跑完**，触发器只负责"戳一下"：
 
 ```
-Windows 任务计划 DSH-KB-DailySync  每天 21:00（StartWhenAvailable）
-  └─ tools\pipeline\trigger.cmd
+（原）Windows 任务计划 DSH-KB-DailySync  每天 21:00（StartWhenAvailable）   ← 2026-10-12 已删除
+  └─ tools\pipeline\trigger.cmd          ← 现在只剩这一条入口：手动双击，或控制页「跑整链」
        读 trigger-source.json（插件在加载时写）→ 知道插件真正住在哪
        轮询 <插件>/status 直到宿主应答（~3 分钟，登录补跑不会误报失败）
        POST <插件>/__dsh-kb-sync/pipeline  {"apply":true}
@@ -249,6 +260,10 @@ Node 退出期噪声、不算失败；② 只有在输出里**出现 `AUTH_UNAUT
 | 计划任务 | ✅ 动作已改指 `trigger.cmd`；Daily 21:00 + `StartWhenAvailable` + `PT30M` 全部保留 |
 | 知识库体检 | ✅ `kb.mjs doctor` exit 0（2549/2549/2549） |
 
+> **上表是 2026-10-12 当晚之前的验收记录，之后有变更**：其中「计划任务」一行与「`trigger.cmd`（计划任务入口）」
+> 的**调度部分**已失效 —— 该任务当晚被用户要求删除（`Unregister-ScheduledTask`）。`trigger.cmd` 本身
+> 仍可用（手动入口），验收里的其余各段不受影响。
+
 **这一轮实测又抓出 4 个静默问题**（都修了，细节在提交信息里）：
 
 1. **触发器找不到提示**：插件只把 `trigger-source.json` 写进快照，而任务跑的是源码那份 `.cmd` → `rc=2`。
@@ -273,7 +288,7 @@ Node 退出期噪声、不算失败；② 只有在输出里**出现 `AUTH_UNAUT
 
 | 文件 | 作用 |
 |---|---|
-| `trigger.cmd` | **计划任务入口**（本目录）。只负责"戳一下"：挑一份可用的 `trigger-source.json` → 等宿主 `/status` 应答 → `POST /pipeline` → 逐段结果追加进 `trigger.log`。**必须保持纯 ASCII**；不编排任何东西 |
+| `trigger.cmd` | **入口**（本目录）。原来是计划任务入口，**2026-10-12 起计划任务已删除 → 现在就是手动入口**（双击即可）。只负责"戳一下"：挑一份可用的 `trigger-source.json` → 等宿主 `/status` 应答 → `POST /pipeline` → 逐段结果追加进 `trigger.log`。**必须保持纯 ASCII**；不编排任何东西 |
 | `retired\` | 阶段 3 退役件：`sync-daily.cmd`（旧编排）、`sync-extract.cmd`（`dsh headless` 段 2）、`notify.ps1`（桌面气泡）、`ENABLE-SEGMENT-2.flag`、`headless-prompt.md`、`check-log.mjs`。**不被任何东西调用**，留作历史与回退 |
 | `recon-update.mjs` | **仍在用**：整链的第 ② 段（只读侦察）。**别跟着上面那批一起退休** |
 | `update-from-api.mjs` | **仍在用**：整链的第 ③ 段（抓取落盘 + 备份轮转）。同上 |
@@ -341,31 +356,55 @@ Node 退出期噪声、不算失败；② 只有在输出里**出现 `AUTH_UNAUT
 > `.cmd` 先问 `reconAuth`/`updateAuth`，命中才报「Token 可能已过期」，
 > 否则一律报笼统的「同步失败」。
 
-## 三、启用 / 停用
+## 三、启用 / 停用 / 重建计划任务
+
+> ⚠️ **当前状态（2026-10-12 晚）：计划任务 `DSH-KB-DailySync` 不存在了** —— 用户要求取消每天 21:00
+> 的自动抓取，`Unregister-ScheduledTask` 已执行（`Test-Path C:\Windows\System32\Tasks\DSH-KB-DailySync`
+> 为 `False`，`schtasks /query /tn` 报"找不到"）。**现在没有自动跑**；下面的手动入口照旧可用。
+> **唯一的定义备份**：`D:\dsh\tmp\DSH-KB-DailySync-backup-20261012\DSH-KB-DailySync.xml`
+> （`Export-ScheduledTask` 导出，SHA256 `4D6EE052…`）—— 想恢复自动就跑下面第一段。
 
 > ⚠️ **2026-10-12 阶段 3 起 `ENABLE-SEGMENT-2.flag` 已退役**（连同 `sync-daily.cmd` / `sync-extract.cmd`
 > 一起进了 `retired\`）：整条链现在是一个插件路由，跑就全跑、没有"只跑段 1"的开关。要停就停任务
 > （下面的 `Disable-ScheduledTask`），或者在控制页用「只校验」按钮代替「跑并落盘」。
 
 ```powershell
-# 看任务状态
-Get-ScheduledTaskInfo -TaskName "DSH-KB-DailySync"
+# ① 重建每天 21:00 的任务（删掉之后的恢复路径；用备份 XML，Definition 与删除前一致）
+Register-ScheduledTask -Xml (Get-Content 'D:\dsh\tmp\DSH-KB-DailySync-backup-20261012\DSH-KB-DailySync.xml' -Raw) `
+  -TaskName "DSH-KB-DailySync" -Force
 
-# 立即手动跑一次（不需要等 21:00）
-Start-ScheduledTask -TaskName "DSH-KB-DailySync"
-# 或直接跑触发器：cmd /c "D:\dsh\dsh-kb-sync\tools\pipeline\trigger.cmd"
+# ② 没有 XML 时从零建一条（动作/时间/账号按需要改；下面这段 2026-10-12 实测过，字段与备份 XML 逐项一致）
+$action    = New-ScheduledTaskAction -Execute 'D:\dsh\dsh-kb-sync\tools\pipeline\trigger.cmd' `
+                                      -WorkingDirectory 'D:\dsh\dsh-kb-sync\tools\pipeline'
+$trigger   = New-ScheduledTaskTrigger -Daily -At 21:00
+$set       = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 30)
+$principal = New-ScheduledTaskPrincipal -UserId "$env:COMPUTERNAME\$env:USERNAME" -LogonType Interactive
+Register-ScheduledTask -TaskName "DSH-KB-DailySync" -Action $action -Trigger $trigger -Settings $set -Principal $principal
+
+# ③ 手动跑（现在最常用）：双击 trigger.cmd，或
+cmd /c "D:\dsh\dsh-kb-sync\tools\pipeline\trigger.cmd"
 #（它会 POST 到插件；插件没在跑就会等约 3 分钟后 exit 3，并在 LAST-SYNC.txt 留一行）
+# 任务重建后，下面这两条才有效：
+Start-ScheduledTask  -TaskName "DSH-KB-DailySync"      # 立即跑一次
+Get-ScheduledTaskInfo -TaskName "DSH-KB-DailySync"     # 看下次运行时间
 
-# 改时间（例：改成每天 22:30）
-Set-ScheduledTask -TaskName "DSH-KB-DailySync" -Trigger (New-ScheduledTaskTrigger -Daily -At 22:30)
-
-# 暂停 / 恢复 / 删除
+# ④ 改时间 / 暂停 / 恢复 / 删除
+Set-ScheduledTask    -TaskName "DSH-KB-DailySync" -Trigger (New-ScheduledTaskTrigger -Daily -At 22:30)
 Disable-ScheduledTask -TaskName "DSH-KB-DailySync"
 Enable-ScheduledTask  -TaskName "DSH-KB-DailySync"
 Unregister-ScheduledTask -TaskName "DSH-KB-DailySync" -Confirm:$false
 ```
 
-任务设置为「登录时可用（Interactive only）」——这是**必要的**，桌面气泡需要用户会话。同时开了 **StartWhenAvailable**：如果 21:00 你不在电脑前，登录后会尽快补跑。
+任务设置为「登录时可用（`InteractiveToken`，任务计划程序里显示为 Interactive only）」——**这是必要的**：
+整条链要 POST 到**用户会话里跑的 DSH 宿主**，没登录时任务根本不会启动（不会有"补跑失败"一说，
+是压根不跑）；登录后由 **StartWhenAvailable** 尽快补跑。宿主没在跑时，触发器会轮询约 3 分钟后 `exit 3`。
+
+> ② 那段与备份 XML 的逐项对照（2026-10-12 实测：注册→导出→比对→再删除，未启动过任务）：
+> `DaysInterval` / `Command` / `WorkingDirectory` / `StartWhenAvailable` / `ExecutionTimeLimit`(PT30M) /
+> `DisallowStartIfOnBatteries` / `StopIfGoingOnBatteries` / `MultipleInstancesPolicy` / `LogonType` /
+> `UserId` **全部一致**（`New-ScheduledTaskSettingsSet` 的默认值恰好就是原任务那套）。
+> 唯一差别是 `StartBoundary`：原任务是 `2026-10-09T21:00:00`，重建后是重建当天 21:00 —— 每天触发，
+> 起始日期无影响；**要一字不差就用 ① 的 XML**。
 
 ## 四、⚠️ 最大的脆弱点：Token 会过期
 
@@ -441,7 +480,7 @@ Get-Content D:\dsh\dsh-kb-sync\data\import\sync\logs\extract-<今天>.md
 | 日志末尾有 `Assertion failed: ... uv async.c` | **可忽略**。这是 Node 在 Windows 上退出时的 libuv 噪音，不影响结果（退出码仍为 0） |
 | `pwsh: cannot access the file ... being used by another process` | 同一份日志被重定向了两次。见第二节末尾的警告 |
 | 同步成功但没有新内容 | 正常。`没有需要更新的内容 ✔` 表示期间没聊新的 |
-| 任务没在 21:00 跑 | 电脑关机或未登录。登录后会补跑（StartWhenAvailable） |
+| 知识库一直没长 | **先看计划任务还在不在**：2026-10-12 起 `DSH-KB-DailySync` 已被删除，**不会再自动跑** —— 手动双击 `trigger.cmd`，或按第三节重建任务。任务在、但还是没跑：电脑关机或未登录（登录后由 `StartWhenAvailable` 补跑）；宿主没起来则触发器轮询约 3 分钟后 `exit 3` |
 | 想确认最后一次结果 | `Get-Content D:\dsh\dsh-kb-sync\data\import\LAST-SYNC.txt` |
 
 ## 七、日志在哪看
