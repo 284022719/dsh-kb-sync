@@ -58,6 +58,8 @@ Most-used keys: `root` (your pipeline root; `syncScript` / `logDir` / `lastSyncF
 
 Open **`http://127.0.0.1:<your DSH web port>/__dsh-kb-sync/`** (same port as the GUI). The page is a toolbar plus five numbered sections, with four read-only status cards below.
 
+> You do not have to open the page: **Settings → dsh-kb-sync** in the app carries the same status summary (configuration, pipeline root, knowledge base, credential age, size, activity) and three actions — **Pull new**, **Run full chain**, **Open control page**. It follows the host UI language (Chinese / English dictionaries) and deliberately offers **no config editing** (settings are resolved once when the plugin loads, so an editable form would lie until the next restart).
+
 **① Web login state** — paste the `userToken` once. It goes into the DSH credential service only; the plugin never writes it anywhere and it never appears in a log or response.
 
 **② Pull**
@@ -110,16 +112,18 @@ dsh-kb-sync 0.1.0 — red
   why be careful: reads credential values and has network access; may touch secrets or sensitive env vars; execute system commands
   capabilities: shell, fs-write, fs-read, network (outbound), credentials, env
   secret touches: read: creds.resolve(
+  injections: 1 item(s)
+    client-inject: @deepseek-ai/dsh-client-locale, @deepseek-ai/dsh-client-ui-settings
 ```
 
 Read it like this: the red line is the *necessary* consequence of the pull half (resolve the token, then send it to chat.deepseek.com). It cannot be removed by editing code — only bounded: the token goes into the credential service only, is used for that one request, and never reaches a file, log or response; the pull half's only outbound host is `chat.deepseek.com`. Per the tool's rules a red line is blocked by default: to keep using the plugin you confirm the risk in **Settings → plugin check** (the fingerprint changes with the code, so it must be confirmed again). Not being flagged is not proof of safety — see [`docs/CAPABILITY-DISCLOSURE.md`](docs/CAPABILITY-DISCLOSURE.md).
 
 ## Known limitations
 
-- **Host half only**: there is no in-app settings section (that needs a React client half plus a build step); the control page is its own URL.
+- **One in-app surface, not a full settings page**: `lib/client.js` registers a **Settings → dsh-kb-sync** section (a few status rows plus Pull new / Run full chain / Open control page / Refresh). It is hand-written with no build step, and it does **not** edit configuration. The full control page (search, reading a conversation in place, the per-stage table) is still its own URL.
 - Requires the host's `subprocess` service; when missing, `/run` and `/doctor` say so explicitly instead of failing silently.
 - State is polled (every 3 s while something runs), not pushed.
-- The UI text is Chinese (English UI strings are not done yet).
+- **The control page UI text is Chinese**; the in-app settings section ships Chinese and English dictionaries and follows the host locale.
 - **Incremental pull can only ever see the newest 100 conversations**: the list endpoint caps `count` at 100 and ignores paging parameters (verified 2026-10-12: `count=101` → `ILLEGAL_COUNT`; `page` / `offset` / `seq_id` / `cursor` ignored; `POST` → 405). Complete history comes from the full backfill.
 - Verified on Windows + DSH 0.2.0-rc.2: control page, `/status`, `/doctor`, out-of-bounds and cross-site refusal, the chain / segment 2 / full backfill from the page. The POSIX execution branch is written but **not** tested on a real POSIX host.
 - `userToken` expires (hours to days): pulls then fail and you paste a new one. It is your account credential — do not share it.
@@ -129,7 +133,7 @@ Read it like this: the red line is the *necessary* consequence of the pull half 
 ## Development
 
 ```sh
-npm test        # node --test: 50 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps)
+npm test        # node --test: 58 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, client-half contract)
 npm run check   # syntax-check every lib file + an ESM import smoke test
 npm run pack:check
 ```

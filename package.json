@@ -30,6 +30,7 @@
   "main": "./lib/index.js",
   "exports": {
     ".": "./lib/index.js",
+    "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
   "dsh": {
@@ -38,6 +39,14 @@
     },
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
     }
   },
   "engines": {
@@ -45,10 +54,18 @@
     "dsh": ">=0.2.0-rc.2"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": ">=4.0.0-rc"
+    "@deepseek-ai/cordis": ">=4.0.0-rc",
+    "@deepseek-ai/dsh-client-locale": ">=0.1.0-rc.5",
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.0-rc.5"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-locale": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-settings": {
       "optional": true
     }
   },
@@ -65,7 +82,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --check lib/index.js && node --check lib/deepseek.js && node --check lib/export.js && node --check lib/page.js && node --check lib/pipeline.js && node --check lib/process.js && node --check lib/store.js && node --check tools/pipeline/recon-update.mjs && node --check tools/pipeline/update-from-api.mjs && node --input-type=module -e \"await import('./lib/index.js'); console.log('import ok')\"",
+    "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/deepseek.js && node --check lib/export.js && node --check lib/page.js && node --check lib/pipeline.js && node --check lib/process.js && node --check lib/store.js && node --check tools/pipeline/recon-update.mjs && node --check tools/pipeline/update-from-api.mjs && node --input-type=module -e \"await import('./lib/index.js'); console.log('import ok')\"",
     "pack:check": "npm pack --dry-run"
   }
 }

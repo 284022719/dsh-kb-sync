@@ -29,7 +29,7 @@
 
 ```
 dsh-kb-sync/
-├─ lib/                  插件代码：index（路由+整链）/ deepseek（接口）/ export（回填）/ store（落盘）/ page（界面）/ pipeline（整链判定）/ process（段 2）
+├─ lib/                  插件代码：index（路由+整链）/ client（客户端半部：设置页分节）/ deepseek（接口）/ export（回填）/ store（落盘）/ page（界面）/ pipeline（整链判定）/ process（段 2）
 ├─ docs/                 能力披露与架构图
 ├─ test/                 单测（node --test，49 例）
 ├─ tools/                发布脚本（publish.ps1 / publish.cmd）
@@ -142,6 +142,8 @@ POSIX 示例（`syncScript` 指向 `.sh` 时用 `/bin/sh` 执行）：
 
 打开 **`http://127.0.0.1:<你的 DSH Web 端口>/__dsh-kb-sync/`**（与 GUI 同一个端口）。页面 = 顶部一排按钮 + ①–⑤ 五段，另加 4 张不编号的卡（状态 / 知识库 / 最近日志 / 知识库体检）：
 
+> 也可以不开页面：应用内 **设置 → dsh-kb-sync** 有一份同样的状态摘要（配置 / 根目录 / 知识库目录 / 凭据年龄 / 知识库规模 / 是否在跑）和三个动作——**拉取增量 / 跑整链 / 打开控制页**。它跟随界面语言显示中文或英文；**不提供配置编辑**（配置在插件加载时解析一次，改完要重启，页面能改反而会骗人）。
+
 **① 网页端登录态** —— 粘贴一次 `userToken`，它只进 DSH 凭据服务（本机就是 `$DSH_HOME/.credentials.yaml`，由宿主保管；插件自己不把它写进任何文件，日志与响应里也永不带它）。
 
 **② 拉取**
@@ -226,6 +228,8 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
     … + 2 allowlisted/loopback destination(s)
   secret touches:
     read: creds.resolve(
+  injections: 1 item(s)
+    client-inject: @deepseek-ai/dsh-client-locale, @deepseek-ai/dsh-client-ui-settings
   source: unpinned | git+https://github.com/<owner>/dsh-kb-sync.git
   evidence: 40 hit(s)
 ```
@@ -242,10 +246,11 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
 
 ## 已知限制
 
-- **纯 host 半部**：没有设置页内的分节 UI（那需要 React 客户端半部 + 构建步骤），控制页是独立 URL。
+- **应用内只有一个设置分节**：`lib/client.js` 在 **设置 → dsh-kb-sync** 注册一节（状态几行 + 「拉取增量 / 跑整链 / 打开控制页 / 刷新」），手写、无构建步骤；完整的控制页仍是独立 URL（那里才有检索、全文展开、逐段表格）。
+- 客户端分节**不做配置编辑**（配置读的是插件启动时解析的那一份，改配置要重启；页面上能改反而会骗人）。
 - 需要宿主提供 `subprocess` 服务；缺失时 `/run`、`/doctor` 会明确报错，而不是静默失败。
 - 状态是轮询（运行中 3 秒一次），不是推送。
-- 界面文案目前是中文。
+- **控制页界面文案是中文**；应用内设置分节已按宿主 `locale` 服务做了中英文字典（跟随界面语言）。
 - 已在 Windows + DSH 0.2.0-rc.2 上实测：控制页、`/status`、`/doctor`、越界与跨站拒绝；POSIX 执行分支已写但未实测。
 - **2026-10-12 晚：页面那几条路也在真机跑过了**（读数取自 `/status`）—— 一键整链 **21:21:04→21:21:09**（5 段全 `ok`）、`/process` **21:21:39**（自动选中 `deepseek-official` / `deepseek-flash`）、**全量回填 21:23:04→21:25:23 跑完**（真实导出包 25.6 MB / 2549 条会话，0 新增、0 更新、2549 skipped、`errors: []`）、`/run` 的成功路径跑通（`trigger.log` 有 `rc=0`；页面按钮与双击走的是同一条 `trigger.cmd`）。
   > 读法：这几轮上游**没有新内容**（`fetch` 报"没有需要更新的内容 ✔"、段 2 报"本轮条目 0"），所以它们证明的是**管道通 + 幂等 + 跳过路径**，而不是"一次产出新内容的运行"；真正写盘的那几轮看 `data\kb\catalog.json`（2556 条）与 `data\import\knowledge\*.backup-*` 的轮转。
@@ -257,10 +262,11 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
 ## 开发
 
 ```sh
-npm test           # node --test：全部 50 个用例
+npm test           # node --test：全部 58 个用例
                    #   插件路由/同源守卫/越界拒绝/argv 构造/凭据文件不读正文/时间口径（26）
+                   # + 客户端半部契约：加载 id、字典中英对齐、settings.section 注册、守卫头（8）
                    # + 段 2 的 JSON 修复与出件合并（15）+ 整链的阶段判定（9）
-npm run check      # 逐文件语法检查 lib/*.js + 管线两个入口 + ESM import 冒烟
+npm run check      # 逐文件语法检查 lib/*.js（含 client.js）+ 管线两个入口 + ESM import 冒烟
 npm run pack:check # npm pack --dry-run：看发布包内容
 ```
 

@@ -20,6 +20,14 @@
 > 专题 parent 必须匹配），校验不通过就整批不落盘。财务数据只进候选区，永不自动入账。
 > 页面上默认那个按钮就是 **dry-run**：跑模型 + 跑校验，但不写任何文件。
 
+> **客户端半部（`lib/client.js`，2026-10-12 加）**：只做一件事 —— 在宿主 Web 端注册一个
+> `settings.section`（**设置 → dsh-kb-sync**），显示状态摘要并给三个动作（拉取增量 / 跑整链 / 打开控制页）。
+> 它通过**同源 `fetch`** 打插件自己的路由（写操作带 `x-dsh-kb-sync: 1`，与页面同一套守卫），
+> **不新增出网域名、不读凭据、不写任何文件**——所以 §四 的五条红线判定不变，`dsh-trust-check`
+> 也不会因为它变红。它没有构建步骤（手写，符合客户端模块表的 `window.__ModuleLoader__.load` 形态）；
+> 单测锁住契约：加载 id、`inject: ['slots','locale']`、中英字典键一一对应、`settings.section` 注册参数、
+> 写操作带守卫头。
+
 ## 二、实测扫描输出
 
 ```sh
@@ -40,11 +48,16 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2)
     … + 2 allowlisted/loopback destination(s)
   secret touches:
     read: creds.resolve(
+  injections: 1 item(s)
+    client-inject: @deepseek-ai/dsh-client-locale, @deepseek-ai/dsh-client-ui-settings
   source: unpinned | git+https://github.com/<owner>/dsh-kb-sync.git
   evidence: 40 hit(s)
 ```
 
 **与设计一致：拉取半必然构成红线。** 这条红线（"读到凭据的值 **且** 有网络）无法靠改写代码消除 —— 除非不做拉取。
+
+> `injections: client-inject:` 那两行是**客户端分节声明的宿主包**（`dsh.client.inject`），不是权限：
+> 它只说明"这个设置分节要在宿主 Web 端的设置页与 locale 服务存在时才挂载"，不新增任何能力项。
 
 ## 三、这条红线具体意味着什么（以及被什么约束住）
 
