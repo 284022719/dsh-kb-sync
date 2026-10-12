@@ -287,6 +287,7 @@ npm test           # node --test：全部 86 个用例
 npm run check      # 逐文件语法检查 lib/*.js（含 client.js / locale.js）+ 管线两个入口 + ESM import 冒烟
 npm run check:types # tsc --noEmit：编译 lib/index.d.ts + types/usage.ts（需先 npm install，仅开发期）
 npm run pack:check # npm pack --dry-run：看发布包内容
+npm run preflight  # 发布前预检：测试 + 语法 + 类型 + 发布包内容 + 能力披露，一条命令给结论
 node tools/make-screenshots.mjs   # 重新生成 README 里的截图（起假数据演示服务 + 无头 Chrome）
 ```
 

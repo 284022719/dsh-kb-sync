@@ -144,6 +144,7 @@ npm test        # node --test: 86 cases (routes, same-origin guard, traversal re
 npm run check   # syntax-check every lib file + an ESM import smoke test
 npm run check:types  # tsc --noEmit over lib/index.d.ts + types/usage.ts (needs npm install; dev only)
 npm run pack:check
+npm run preflight   # release preflight: tests + syntax + types + package contents + capability disclosure
 ```
 
 ## License

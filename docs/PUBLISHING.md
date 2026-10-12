@@ -39,12 +39,16 @@
 ## 三、发布前检查清单
 
 ```sh
-npm test                 # 80 例必须全绿
-npm run check            # 语法 + import 冒烟
-npm run check:types      # 类型声明能编译（需先 npm install）
-npm run pack:check       # 看发布包内容
+npm run preflight        # 一条命令跑完下列五步；退出码就是结论
 ```
 
+| 步骤 | 查什么 |
+|---|---|
+| `npm test` | 用例全绿（含随包卫生、文档一致性、插件⇄管线契约） |
+| `npm run check` | 每个 lib 文件语法 + ESM import 冒烟 |
+| `npm run check:types` | 类型声明能编译（未装 devDependencies 会明确跳过，不假装通过） |
+| 发布包内容 | `npm pack --dry-run --json`：**不该出现的**（`attic`/`retired`/`health-selection`/`pipeline.json`/`trigger.*`/`.token`…）与**必须有的**（两侧入口、`index.d.ts`、`locale`、两份 README、`screenshots.json`）逐项核对 |
+| `dsh-trust-check` | 能力披露（宿主自带工具；红线是登记过的，所以只看它跑没跑起来。离线可加 `--no-npx`） |
 然后人工过一遍 **包内是否出现个人数据 / 本机运行时文件**（这条是机械检查，务必做）：
 
 ```powershell
