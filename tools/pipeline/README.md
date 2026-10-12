@@ -309,7 +309,8 @@ Node 退出期噪声、不算失败；② 只有在输出里**出现 `AUTH_UNAUT
 | `..\..\data\import\sync\logs\` | 段 1 日志 `sync-<时间戳>.log`、段 2 摘要 `extract-<日期>.md` |
 | `..\..\data\import\LAST-SYNC.txt` | 最近若干次同步的状态行 |
 | `ENABLE-SEGMENT-2.flag` | 存在即启用段 2（**当前已存在：段 2 已启用**） |
-| `attic\` | 一次性脚本与中间产物（`tools\oneoff\`、`probe-*`、`*-selection*.json`、`bundle\`…）。不被管线调用，留档用 |
+| `search.mjs` | 全文检索脚本；`build-kb.mjs` 会把它复制进知识库的 `<kb>\tools\search.mjs`。**没有本地依赖**（自己按位置推 KB 根） |
+| `..\..\data\import\pipeline-attic\` | 一次性脚本与中间产物（`tools\oneoff\`、`probe-*`、`analysis-*`、`*-selection*.json`…）。**2026-10-12 从 `tools\pipeline\attic\` 搬到这里**：它们含真实会话标题等个人数据，不随插件发布、也不入库。健康流水线的输入 `health-selection.json` 也在 `data\import\` 下 |
 
 > ⚠️ **`.cmd` 里绝对不能写中文。** cmd.exe 按 GBK 读取 .cmd，中文会被搅乱并把后续内容当成命令执行。中文一律放 `notify.ps1` 或 `.mjs` / `.md`，调用方只传错误代码。
 

@@ -5,11 +5,12 @@
 //   node prep-health-batches.mjs [maxCharsPerBatch=140000]
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { KB_DIR, PIPE_DIR, HEALTH_BATCHES } from './_paths.mjs';
+import { KB_DIR, PIPE_DIR, HEALTH_BATCHES, IMPORT_DIR } from './_paths.mjs';
 
 const MAX = Number(process.argv[2] ?? 140000);
 const KB = KB_DIR;
-const sel = JSON.parse(readFileSync(join(PIPE_DIR, 'health-selection.json'), 'utf8'));
+// 个人数据不进代码目录：筛选清单与中间产物都放 <import>/（2026-10-12 搬出 tools/pipeline）
+const sel = JSON.parse(readFileSync(join(IMPORT_DIR, 'health-selection.json'), 'utf8'));
 
 const PERSONAL = /我(的|本人)?|自己|本人|体检|报告|化验|指标|尿酸|血糖|血压|血脂|胆红素|肌酐|结节|体重|身高|BMI|体脂|症状|疼|痛|头晕|失眠|睡眠|熬夜|用药|吃药|剂量|副作用|补剂|蛋白粉|肌酸|增重|增肌|减肥|焦虑|抑郁|拖延|ADHD|注意力|情绪/g;
 // Concrete personal measurements: real biometric units only (percentages and
@@ -90,4 +91,6 @@ batches.forEach((b, i) => {
 writeFileSync(join(HEALTH_BATCHES, 'manifest.json'), JSON.stringify(manifest, null, 1));
 console.log(`\n批次数: ${batches.length}（每批 <= ${MAX.toLocaleString('en-US')} 字符）`);
 for (const m of manifest) console.log(`  ${m.file}  ${String(m.count).padStart(2)} 个会话  ${Math.round(m.chars / 1000)}k 字`);
-writeFileSync(join(PIPE_DIR, 'attic', 'health-selection-scored.json'), JSON.stringify(rows, null, 1));
+const ATTIC = join(IMPORT_DIR, 'pipeline-attic');
+mkdirSync(ATTIC, { recursive: true });
+writeFileSync(join(ATTIC, 'health-selection-scored.json'), JSON.stringify(rows, null, 1));

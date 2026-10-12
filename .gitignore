@@ -13,3 +13,10 @@ tools/pipeline/pipeline.json
 tools/pipeline/trigger.json
 tools/pipeline/trigger-source.json
 tools/pipeline/trigger.log
+
+# 个人语料产物不得回到代码目录（2026-10-12 搬去 data/import/）：
+#   health-selection.json（真实会话标题+路径）、pipeline-attic/（analysis-*、probe-*、oneoff 脚本）。
+# 这些是流水线的输入/中间产物，含个人数据；仓库与发布包里都不该出现。
+tools/pipeline/health-selection.json
+tools/pipeline/specialties-map.json
+tools/pipeline/attic/

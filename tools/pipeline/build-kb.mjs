@@ -63,7 +63,7 @@ for (const f of ['catalog.json', 'catalog.tsv', 'conversations.jsonl']) {
   }
 }
 mkdirSync(join(OUT, 'tools'), { recursive: true });
-for (const f of ['search.mjs']) cpSync(join(PIPE_DIR, 'attic', f), join(OUT, 'tools', f));
+for (const f of ['search.mjs']) cpSync(join(PIPE_DIR, f), join(OUT, 'tools', f));
 
 // --- per-topic pages ---
 const human = (n) => n.toLocaleString('en-US');
