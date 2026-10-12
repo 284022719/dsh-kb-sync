@@ -73,6 +73,8 @@
     "locale",
     "docs",
     "tools/pipeline",
+    "assets/screenshots",
+    "screenshots.json",
     "cordis.patch.yml",
     "config.example.json",
     "CHANGELOG.md",

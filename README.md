@@ -16,6 +16,12 @@
 
 ![dsh-kb-sync 用法与边界：浏览器 → 插件路由 → 你的同步命令 → 状态文件与你的产物](docs/architecture.svg)
 
+![控制页首屏](assets/screenshots/preview-01-control-page.png)
+
+> 另外三张（整页 ④ 逐段表格与 ⑤ 段 2、检索命中、英文界面）在 [`assets/screenshots/`](assets/screenshots)，清单是 `screenshots.json`。
+> 重新生成：`node tools/make-screenshots.mjs` —— 它起一个**只喂假数据**的本地演示服务再截真实页面，
+> 所以图里的路径（`D:\demo\...`）与对话都是编的，不含你的任何数据。
+
 <sub>⚠️ 这张图只画**编排半**（阶段 1 的画法）：虚线框里是插件当时对外的 5 个路由与只读状态文件，出网与凭据都在绿色框里 —— 你自己那条命令中。**拉取半（读凭据、连 chat.deepseek.com）与段 2（调宿主模型）都不在图上**，别把它当成全部作用域；全部路由见下方路由表。</sub>
 
 ## 它做什么 / 不做什么
@@ -267,14 +273,15 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
 ## 开发
 
 ```sh
-npm test           # node --test：全部 72 个用例
+npm test           # node --test：全部 73 个用例
                    #   插件路由/同源守卫/越界拒绝/argv 构造/凭据文件不读正文/时间口径/语言接线（27）
                    # + 客户端半部契约：加载 id、字典中英对齐、settings.section 注册、守卫头（8）
                    # + 多语言：译文表完整、键对齐、占位符一致、英文页无未翻译中文、内联脚本可解析（8）
                    # + 段 2 的 JSON 修复与出件合并（15）+ 整链的阶段判定（9）
-                   # + 文档一致性：本地链接存在、路由表与代码一一对应、script 名存在、用例数（5）
+                   # + 文档一致性：本地链接、路由表、script 名、用例数、截图存在且是 PNG（6）
 npm run check      # 逐文件语法检查 lib/*.js（含 client.js / locale.js）+ 管线两个入口 + ESM import 冒烟
 npm run pack:check # npm pack --dry-run：看发布包内容
+node tools/make-screenshots.mjs   # 重新生成 README 里的截图（起假数据演示服务 + 无头 Chrome）
 ```
 
 ## English summary

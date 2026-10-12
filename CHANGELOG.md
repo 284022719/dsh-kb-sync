@@ -66,6 +66,7 @@ First public release: one plugin with three capability blocks (pull / orchestrat
 ### 工程 · Engineering
 
 - **CI**（`.github/workflows/ci.yml`）：ubuntu + windows × Node 20/22/24 跑 `npm test` / `check` / `pack:check`——Windows 之外的 runner 才验得到 POSIX 执行分支。
-- **文档一致性测试**（`test/docs.test.mjs`）：本地链接必须存在、README 路由表必须与代码一一对应、文档提到的 npm script 必须存在、README 里的用例数必须与实测一致——**"文档漂了"变成失败，而不是靠人记得**。
+- **文档一致性测试**（`test/docs.test.mjs`）：本地链接必须存在、README 路由表必须与代码一一对应、文档提到的 npm script 必须存在、README 里的用例数必须与实测一致、截图清单里的图必须存在且是 PNG——**"文档漂了"变成失败，而不是靠人记得**。
+- **截图生成器**（`tools/make-screenshots.mjs`，开发工具、不入发布包）：起一个**只喂假数据**的本地演示服务 + 无头 Chrome，把**真实页面**截成 4 张门面图（首屏 / 整页 / 检索命中 / 英文界面）并写 `screenshots.json`；图里的 `D:\demo\...` 与对话全是编的，不含作者任何数据。
 
 > EN: usage and boundaries in both READMEs; per-capability disclosure in `docs/CAPABILITY-DISCLOSURE.md`; the pipeline, its schedule and the rebuild commands in `tools/pipeline/README.md`.

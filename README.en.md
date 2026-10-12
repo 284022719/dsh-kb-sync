@@ -18,6 +18,11 @@ The typical pipeline is "DeepSeek web history → local knowledge base", but the
 
 ## What it does / does not do
 
+![control page](assets/screenshots/preview-01-control-page.png)
+
+> Three more (the full page with the per-stage chain table and segment 2, a search hit, the English UI) live in [`assets/screenshots/`](assets/screenshots), listed by `screenshots.json`.
+> Regenerate with `node tools/make-screenshots.mjs`: it serves a **fake-data-only** local demo and screenshots the real page, so the paths you see (`D:\demo\...`) and the conversations are invented — no data of yours is in the images.
+
 | | |
 |---|---|
 | ✅ Does (orchestration) | Starts your configured command through DSH's `subprocess`; shows progress from your status files and logs; runs your integrity-check command; all from one local control page |
@@ -135,7 +140,7 @@ Read it like this: the red line is the *necessary* consequence of the pull half 
 ## Development
 
 ```sh
-npm test        # node --test: 72 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, language wiring, client-half contract, translation-table integrity, doc consistency)
+npm test        # node --test: 73 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, language wiring, client-half contract, translation-table integrity, doc consistency)
 npm run check   # syntax-check every lib file + an ESM import smoke test
 npm run pack:check
 ```

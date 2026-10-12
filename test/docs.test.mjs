@@ -84,3 +84,20 @@ test('README 里的测试用例数与实际一致', () => {
   assert.match(zh, new RegExp(`全部 ${count} 个用例`), `README.md 应写明「全部 ${count} 个用例」`)
   assert.match(en, new RegExp(`${count} cases`), `README.en.md 应写明 ${count} cases`)
 })
+
+test('screenshots.json 里的截图真实存在、是 PNG、且进了发布包', () => {
+  const pkg = JSON.parse(read('package.json'))
+  assert.ok(pkg.files.includes('screenshots.json'), 'package.json files 应含 screenshots.json')
+  assert.ok(pkg.files.includes('assets/screenshots'), 'package.json files 应含 assets/screenshots')
+  const list = JSON.parse(read('screenshots.json'))
+  assert.ok(Array.isArray(list) && list.length >= 3, 'screenshots.json 应是一个至少 3 项的路径数组')
+  for (const rel of list) {
+    const abs = join(ROOT, rel)
+    assert.ok(existsSync(abs), `截图不存在：${rel}`)
+    const bytes = readFileSync(abs)
+    assert.deepEqual([...bytes.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], `${rel} 不是 PNG（文件头不对）`)
+    assert.ok(bytes.length > 6000, `${rel} 太小，可能是张空白图`)
+  }
+  assert.ok(read('README.md').includes(list[0]), 'README.md 应嵌入第一张截图')
+  assert.ok(read('README.en.md').includes(list[0]), 'README.en.md 也应嵌入它')
+})
