@@ -60,10 +60,9 @@ Windows 任务计划程序  DSH-KB-DailySync  每天 21:00
 | 落点 | `health-facts/manual-<日期>.json` | **`finance/data/candidates.jsonl`（只进候选区）** |
 | 是否自动生效 | 是（随后重建档案） | **否——必须由你在财务看板确认后才入账** |
 
-> ⚠️ **财务为什么只写候选、不自动入账**：**台账的规矩只有一个家** —— 见
-> `D:\dsh\控制台中心\finance\README.md`「候选不会自动进台账」（每个数字带 `asOf` 与出处、同一指标的多口径
-> 全部保留、不合并不取平均）。让模型直接改 `profile.json` / `debts.json` 会破坏它，而钱的数字一旦悄悄错掉
-> 很难发现。所以段 2 只把候选追加到 `candidates.jsonl`。
+> ⚠️ **财务为什么只写候选、不自动入账**：**台账的规矩只有一个家** ——
+> `D:\dsh\控制台中心\finance\README.md`「候选不会自动进台账」。让模型直接改 `profile.json` / `debts.json`
+> 会破坏那套规矩，而钱的数字一旦悄悄错掉很难发现。所以段 2 只把候选追加到 `candidates.jsonl`。
 >
 > 候选体积很小、只追加不覆盖；重复抽取会按 `dedupeKey`（topic+label+值+asOf+出处）自动跳过，反复运行不会堆积。
 >
