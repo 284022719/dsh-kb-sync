@@ -1,5 +1,7 @@
 # dsh-kb-sync
 
+**中文** ｜ [English](README.en.md) ｜ [更新日志](CHANGELOG.md)
+
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 插件：把**你自己已有的同步流水线**搬到一个同源控制页——一键运行、看状态、看日志、跑完整性体检。
 
 典型的流水线是「网页端对话历史 → 本地知识库」，但插件本身不关心你同步什么。
@@ -36,10 +38,11 @@ dsh-kb-sync/
 ├─ package.json / cordis.patch.yml / README.md / LICENSE
 ```
 
-> 上面是**源码仓库**的样子。装好的插件里只有 `lib/`、`docs/`、`tools/pipeline/`、
-> `cordis.patch.yml`、`README.md`、`LICENSE`（`package.json` 的 `files` 白名单；2026-10-12 实测
-> `npm pack --dry-run` 共 112 个文件）—— **`test/`、`tools/publish.*`、`config.example.json` 都不在其中**，
-> 所以下节的样例照抄即可，别去插件目录里找那个文件。
+> 上面是**源码仓库**的样子。安装包（`package.json` 的 `files` 白名单；2026-10-12 实测
+> `npm pack --dry-run` 共 **115** 个文件 / 380 KB）里有 `lib/`、`docs/`、`tools/pipeline/`、
+> `cordis.patch.yml`、`config.example.json`、`CHANGELOG.md`、`README.md`、`README.en.md`、`LICENSE`
+> —— **`test/`、`tools/publish.*`、`data/` 不在其中**（`config.example.json` 自 0.1.0 起随包发布；
+> 更早装的快照里没有它，那就直接新建 `config.json`）。
 
 ## 适配你的流水线
 
@@ -99,7 +102,7 @@ dsh plugin --profile web add github:<owner>/dsh-kb-sync
 **方式二：插件文件夹里的 `config.json`**（推荐——配置跟着代码走，整包拷走也不丢）
 
 ```jsonc
-// <插件目录>/config.json   （装好的插件里没有 config.example.json，直接新建这个文件写下面这几项即可）
+// <插件目录>/config.json   （可先复制同目录的 config.example.json 改名；更早装的快照里没有那个样例文件，直接新建即可）
 { "root": "D:\\path\\to\\pipeline", "outDir": "data/kb", "tokenOldDays": 21 }
 ```
 
@@ -254,14 +257,18 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
 ## 开发
 
 ```sh
-node --test        # 全部 49 个用例：路由/同源守卫/越界拒绝/argv 构造/凭据文件不读正文（25）
-                   #              + 段 2 的 JSON 修复与出件合并（15）+ 整链的阶段判定（9）
-npm test           # 只跑 test/plugin.test.mjs（25 个路由用例）
+npm test           # node --test：全部 50 个用例
+                   #   插件路由/同源守卫/越界拒绝/argv 构造/凭据文件不读正文/时间口径（26）
+                   # + 段 2 的 JSON 修复与出件合并（15）+ 整链的阶段判定（9）
+npm run check      # 逐文件语法检查 lib/*.js + 管线两个入口 + ESM import 冒烟
+npm run pack:check # npm pack --dry-run：看发布包内容
 ```
 
 ## English summary
 
 A DeepSeek Harness plugin with three capability blocks. **Pull**: it reads the DeepSeek web `userToken` from the DSH credential service, calls chat.deepseek.com, and normalizes conversations into a local knowledge base (markdown + JSONL + catalog) with in-plugin search. **Orchestrate**: it runs and monitors a sync/integrity command you already own. **Segment 2**: it runs the pipeline's judgement step in process through the host `llm` service — prepare the inputs, get one JSON judgement, validate it with the pipeline's own script, and only then write and rebuild. Static capability disclosure (`dsh-trust-check`): **1 red line** — "reads credential values and has network access", which the pull half cannot avoid; the token never leaves the credential service for any file, log, or response, and the pull half's only outbound host is chat.deepseek.com.
+
+**完整英文说明见 [`README.en.md`](README.en.md)。**
 
 ## License
 

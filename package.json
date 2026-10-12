@@ -1,13 +1,27 @@
 {
   "name": "dsh-kb-sync",
   "version": "0.1.0",
-  "description": "DeepSeek Harness plugin: run and monitor a user-owned conversation-sync pipeline from a local control page. Phase 2 also absorbs the pipeline's segment 2: classification, health-fact and finance-candidate extraction run in-process through the host llm service (no extra dependency — one stream, JSON validated before anything lands).",
+  "description": "DeepSeek Harness plugin: pull your DeepSeek web conversations into a local knowledge base (markdown + JSONL + catalog) with in-plugin search, orchestrate a sync/integrity command you already own from a same-origin control page, and run the pipeline's judgement step in process through the host llm service (one stream, JSON validated before anything lands).",
+  "license": "MIT",
+  "author": "284022719",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/284022719/dsh-kb-sync.git"
+  },
+  "homepage": "https://github.com/284022719/dsh-kb-sync#readme",
+  "bugs": {
+    "url": "https://github.com/284022719/dsh-kb-sync/issues"
+  },
   "keywords": [
     "dsh",
     "dsh-plugin",
     "deepseek-harness",
     "deepseek",
     "knowledge-base",
+    "conversation-history",
+    "conversation-export",
+    "markdown",
+    "local-first",
     "sync",
     "orchestration",
     "llm"
@@ -19,8 +33,23 @@
     "./package.json": "./package.json"
   },
   "dsh": {
+    "engines": {
+      "dsh": ">=0.2.0-rc.2"
+    },
     "bundle": {
       "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.0-rc.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.0-rc"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
     }
   },
   "files": [
@@ -28,18 +57,15 @@
     "docs",
     "tools/pipeline",
     "cordis.patch.yml",
+    "config.example.json",
+    "CHANGELOG.md",
     "README.md",
+    "README.en.md",
     "LICENSE"
   ],
-  "engines": {
-    "node": ">=20"
-  },
   "scripts": {
-    "test": "node --test test/plugin.test.mjs"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/284022719/dsh-kb-sync.git"
+    "test": "node --test",
+    "check": "node --check lib/index.js && node --check lib/deepseek.js && node --check lib/export.js && node --check lib/page.js && node --check lib/pipeline.js && node --check lib/process.js && node --check lib/store.js && node --check tools/pipeline/recon-update.mjs && node --check tools/pipeline/update-from-api.mjs && node --input-type=module -e \"await import('./lib/index.js'); console.log('import ok')\"",
+    "pack:check": "npm pack --dry-run"
   }
 }
