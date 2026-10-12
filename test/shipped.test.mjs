@@ -149,3 +149,18 @@ test('插件引用的管线脚本都存在，且传的标志被脚本承认', ()
   const unknown = checks.filter((c) => !c.known).map((c) => `${c.file} 不认 ${c.flag}`)
   assert.deepEqual(unknown, [], `插件传了脚本不认的标志（脚本会静默忽略）：\n  ${unknown.join('\n  ')}`)
 })
+
+/**
+ * 判成不得依赖脚本输出的**措辞**。
+ *
+ * 依据：`apply-extraction.mjs` 只认 `--dry-run`、失败时 `process.exit(2)`（脚本里唯一的显式退出），
+ * 所以"成功/失败"应当由**退出码**决定；措辞只在 `classifyStage` 里当"容忍 Node 退出期噪声"的标记用。
+ * 2026-10-12 实测：原来落盘那步是 `/全部校验通过/.test(stdout)` —— 脚本改个措辞，成功的落盘就会被判成失败。
+ */
+test('判成不依赖输出措辞：没有 /…校验通过…/.test( 这种条件的回归', () => {
+  const index = readFileSync(join(ROOT, 'lib/index.js'), 'utf8')
+  const wordingJudged = [...index.matchAll(/\/[^/\n]*校验通过[^/\n]*\/\.test\(/g)].map((m) => m[0])
+  assert.deepEqual(wordingJudged, [], '不要再按输出措辞判成败（用 classifyStage：退出码优先）')
+  const wired = [...index.matchAll(/classifyStage\(\{ exitCode: (validation|appliedRun)\.exitCode/g)]
+  assert.ok(wired.length >= 2, `校验与落盘两处都应走 classifyStage，实际 ${wired.length} 处`)
+})
