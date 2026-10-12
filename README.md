@@ -1,6 +1,8 @@
 # dsh-kb-sync
 
-**中文** ｜ [English](README.en.md) ｜ [更新日志](CHANGELOG.md)
+[![ci](https://github.com/284022719/dsh-kb-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/284022719/dsh-kb-sync/actions/workflows/ci.yml)
+
+**中文** ｜ [English](README.en.md) ｜ [使用说明](docs/USAGE.md) ｜ [更新日志](CHANGELOG.md)
 
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 插件：把**你自己已有的同步流水线**搬到一个同源控制页——一键运行、看状态、看日志、跑完整性体检。
 
@@ -265,11 +267,12 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
 ## 开发
 
 ```sh
-npm test           # node --test：全部 67 个用例
+npm test           # node --test：全部 72 个用例
                    #   插件路由/同源守卫/越界拒绝/argv 构造/凭据文件不读正文/时间口径/语言接线（27）
                    # + 客户端半部契约：加载 id、字典中英对齐、settings.section 注册、守卫头（8）
                    # + 多语言：译文表完整、键对齐、占位符一致、英文页无未翻译中文、内联脚本可解析（8）
                    # + 段 2 的 JSON 修复与出件合并（15）+ 整链的阶段判定（9）
+                   # + 文档一致性：本地链接存在、路由表与代码一一对应、script 名存在、用例数（5）
 npm run check      # 逐文件语法检查 lib/*.js（含 client.js / locale.js）+ 管线两个入口 + ESM import 冒烟
 npm run pack:check # npm pack --dry-run：看发布包内容
 ```

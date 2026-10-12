@@ -14,7 +14,7 @@ The typical pipeline is "DeepSeek web history → local knowledge base", but the
 
 <sub>⚠️ The diagram covers the **orchestration half only** (drawn at phase 1). The pull half and segment 2 are not in it — see the route table below for those.</sub>
 
-中文说明见 [`README.md`](README.md)；版本变更见 [`CHANGELOG.md`](CHANGELOG.md)。
+中文说明见 [`README.md`](README.md)；用户指南见 [`docs/USAGE.md`](docs/USAGE.md) / [`docs/USAGE.en.md`](docs/USAGE.en.md)；版本变更见 [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## What it does / does not do
 
@@ -135,7 +135,7 @@ Read it like this: the red line is the *necessary* consequence of the pull half 
 ## Development
 
 ```sh
-npm test        # node --test: 67 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, language wiring, client-half contract, translation-table integrity)
+npm test        # node --test: 72 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, language wiring, client-half contract, translation-table integrity, doc consistency)
 npm run check   # syntax-check every lib file + an ESM import smoke test
 npm run pack:check
 ```

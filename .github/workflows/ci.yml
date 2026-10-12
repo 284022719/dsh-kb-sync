@@ -1,0 +1,30 @@
+# 本仓库零运行依赖，所以不需要 npm ci；直接跑测试与检查。
+#
+# 两个平台是刻意的：插件里有一条 POSIX 执行分支（`/bin/sh <script>`、`.ps1` 走 pwsh），
+# Windows 之外的 runner 才验得到它。矩阵取 Node 20（engines 下限）/ 22 / 24。
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ['20', '22', '24']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: 单元测试
+        run: npm test
+      - name: 语法与 import 冒烟
+        run: npm run check
+      - name: 发布包内容（顺带拦住个人数据/多余文件）
+        run: npm run pack:check

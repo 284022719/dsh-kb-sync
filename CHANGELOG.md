@@ -57,8 +57,15 @@ First public release: one plugin with three capability blocks (pull / orchestrat
 ### 文档 · Docs
 
 - [`README.md`](README.md) / [`README.en.md`](README.en.md)：用法与边界；
+- [`docs/USAGE.md`](docs/USAGE.md) / [`docs/USAGE.en.md`](docs/USAGE.en.md)：**任务导向的用户指南**（五分钟跑通、"我想做 X 点哪里"、三条同步路径怎么选、段 2 的两个按钮、手动/计划任务、配置改哪一份、数据与备份、排错手册）；
 - [`docs/CAPABILITY-DISCLOSURE.md`](docs/CAPABILITY-DISCLOSURE.md)：逐条能力披露与已知局限；
+- [`docs/PUBLISHING.md`](docs/PUBLISHING.md)：发布须知（哪些绝不能进仓库/进包、发布前检查清单、历史也会泄露这条坑）；
 - [`docs/architecture.svg`](docs/architecture.svg)：编排半的作用域图（拉取半与段 2 不在图上，见 README 图注）；
 - [`tools/pipeline/README.md`](tools/pipeline/README.md)：流水线、调度与重建命令。
+
+### 工程 · Engineering
+
+- **CI**（`.github/workflows/ci.yml`）：ubuntu + windows × Node 20/22/24 跑 `npm test` / `check` / `pack:check`——Windows 之外的 runner 才验得到 POSIX 执行分支。
+- **文档一致性测试**（`test/docs.test.mjs`）：本地链接必须存在、README 路由表必须与代码一一对应、文档提到的 npm script 必须存在、README 里的用例数必须与实测一致——**"文档漂了"变成失败，而不是靠人记得**。
 
 > EN: usage and boundaries in both READMEs; per-capability disclosure in `docs/CAPABILITY-DISCLOSURE.md`; the pipeline, its schedule and the rebuild commands in `tools/pipeline/README.md`.
