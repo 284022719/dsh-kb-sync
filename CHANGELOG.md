@@ -3,6 +3,92 @@
 > 每条描述**当时那个版本**的行为，不保证对当前版本全部成立；当前用法看 [`README.md`](README.md)（中文）与 [`README.en.md`](README.en.md)。
 > Entries describe behaviour **at that release**, not necessarily current behaviour — see the READMEs for current usage.
 
+## 0.2.0 — 2026-10-16
+
+> 两个主题：**控制页按任务重排**（去掉内部术语与重复入口），以及**面向公开发布的加固**
+> （代码注释与文档的能力陈述对账、两条防漂移测试、社区门面文件）。安装方式不变。
+
+### 控制页重排 + 术语改造（2026-10-15）
+
+起因：控制页把五项功能平铺、编号 ①–⑤，工具栏和卡片里还各摆一套「拉取 / 回填」按钮；界面上又直接写着
+「段 2」这类只有作者看得懂的内部流程名。这一版按**任务**分块、只留说人话的名字，并去掉两个多余入口
+（"插件页直连"与重复的抓取按钮）。
+
+**版式**（`lib/page.js` 重写）：
+
+- 首屏只留**结论条**：一句话结论（正常 / 需要看一眼 / 上次没成功）+ 三个关键数字
+  （知识库会话数、最近一次更新、登录态年龄）+ 主按钮「**更新知识库**」；真有事才多出一块「要你处理」。
+- 分区按**任务**分，**不再编号**：**收新对话 / 找内容 / 整理 / 运行详情与诊断**（最后一块是折叠的，
+  里面放当前状态、知识库规模、最近日志、体检、分步表格、运行已有脚本）。
+- 同一个动作**只留一个按钮**：以前工具栏和卡片里各摆一套「拉取 / 全量回填」，互相抢焦点。
+- 补齐全量历史、网页端登录态都收进折叠；页面在宽屏下不再是一根细柱子（`max-width: 1080px` 居中）。
+
+**术语**（用户原话："段 2 这是什么神奇称呼"）—— 界面上不再出现内部流程名：
+
+| 以前（开发者视角） | 现在（界面） |
+|---|---|
+| ① 网页端登录态 / ② 拉取 / ③ 检索 / ④ 一键整链 / ⑤ 段 2 判断 | 网页端登录态 / 收新对话 / 找内容 / 整理 / 更新知识库 |
+| 段 1 / 段 2 | 抓取 / **整理**（模型归类与提炼） |
+| 整链、阶段 2/3 | 更新知识库 |
+| dry-run / 只校验（不落盘） | 试运行（只看会改什么，不写入） |
+| 落盘 / 跑并落盘 + 重建 | 写入 / 写入并重建 |
+| 步骤表里的 `token/recon/fetch/process/doctor` | 登录态 / 查有没有新内容 / 抓取 / 整理 / 体检（原始代码只留在悬停提示里，排错时对日志用） |
+
+**取消直连入口**：`lib/client.js` 的应用内分节**删掉「打开控制页」按钮**（那个按钮指向插件的直连地址）；
+README/USAGE 里 "进哪一页" 只留一条主路径。理由：多给一个入口 = 多记一个地址、多一处会失效的链接。
+
+**防回退**：新增两条判据 —— `test/locale.test.mjs` 扫渲染结果里不许出现
+`段 1 / 段 2 / 整链 / 阶段 2,3 / dsh headless / dry-run / 落盘 / ①②③④⑤`；
+`test/plugin.test.mjs` 从**真路由返回的 HTML** 再钉一次（`段 2 / 整链 / dsh headless / dry-run`）。
+顺带一条给未来的自己：**内联 `<script>` 与 `<style>` 里的注释必须是 ASCII** —— `locale.test.mjs` 会把
+英文页里译文表以外的任何中日韩文字判成"漏翻"（这次踩了：三处中文注释当场变红）。
+
+用例数 86 → **87**；`lib/client.js` 的中英字典同步去掉 `act.open`（两侧键集合必须一致，有测试钉着）。
+
+> EN: the control page was re-laid-out by task (one-line verdict bar, then bring-in / find / organise,
+> with details folded into "run details & diagnostics"), the ①–⑤ numbering is gone, and every internal
+> flow name in the UI became plain language (segment 1/2 → fetch/organise, full chain → update,
+> dry run → dry run, "landing" → write). The in-app section no longer offers an "open control page"
+> button (one answer to "where do I go"). Two tests now fail if the jargon creeps back. 87 cases.
+
+> ⚠️ **本机要重装快照 + 重启才看得到**：`file:` 安装是**复制快照**（运行中的实例用的是启动时缓存的模块）。
+> 先 `dsh plugin --profile <profile> remove dsh-kb-sync` 再 `add`，然后重启应用；插件的信任指纹会随代码变化失效，需要在设置里重新确认一次。
+
+### 发布加固（2026-10-16）
+
+**① 能力陈述与实现对账** —— 修的是"公开页面上写着与代码相反的话"这一类问题：
+
+- `lib/index.js` 头部的 capability posture 段是"只做编排"的早期版本一路留下来的：它写着
+  "**No credentials** … never touches the DSH `credentials` service" 与 "**No network**"，
+  而同一个文件里早在调 `credentials.resolve()`；那段里的路由清单也停在 5 条（实际 14 条）。
+  现在改成**按三块能力分别陈述**，并写明哪一块构成静态扫描的红线、为什么消不掉。
+- `docs/CAPABILITY-DISCLOSURE.md` 两处失真：设置分节的三个动作名还写着 2026-10-15 已经删掉的
+  「打开控制页」（实际是 抓取新对话 / 更新知识库 / 刷新）；"`scripts` 只有 `test`" 也不再成立。
+- README 的包体量、用例数等实测数字同步到当前值（包体量 55 → 58 个文件 / 480 KB）。
+
+**② 三条防漂移测试**（都是让上面那类问题"下次自己变红"）：
+
+- 文档一致性组：`lib/index.js` 头部逐行列出的路由必须与实际路由**一一对应**，
+  且头部写的总数必须等于实际条数；
+- 文档一致性组：披露文档里写的客户端**动作名与个数**，必须等于 `lib/client.js` 的 `act.*` 字典；
+- 随包卫生组：`package.json` 不得声明任何**安装期钩子**（`install` / `postinstall` / `prepare` …），
+  运行依赖必须为空 —— 这两条正是能力披露里声明"没有"的东西。
+
+**③ 社区门面**：新增 [`CONTRIBUTING.md`](CONTRIBUTING.md)（开发规矩，标明哪几条是测试钉着的）、
+[`SECURITY.md`](SECURITY.md)（三块能力面、对 token 的承诺、私密报告通道与回应预期）、
+GitHub issue 表单（bug / feature）与 PR 模板；三个文件都进发布包。
+
+用例数 87 → **90**。
+
+> EN: 0.2.0 also hardens the public-facing story. The module header of `lib/index.js` had claimed
+> "no credentials, no network" since the orchestrate-only days, while the same file resolves credentials
+> and the route list stopped at 5 of 14 — both now state the three capability blocks and name the red
+> line. Two stale claims in the capability disclosure (a removed settings action, and "scripts only has
+> `test`") are fixed, and three new tests pin the class of defect: the header route list must equal the
+> real routes, the disclosure's action names must equal the client dictionary, and `package.json` must
+> declare no install hooks and no runtime dependencies. Adds CONTRIBUTING.md, SECURITY.md, GitHub issue
+> forms and a PR template (all shipped). 90 cases; package 58 files / 480 KB.
+
 ## 0.1.0 — 2026-10-12
 
 **首个公开版本：一个插件，三块能力（拉取 / 编排 / 段 2 判断）。**

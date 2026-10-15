@@ -34,13 +34,13 @@ DSH 插件，**一个插件三块能力**：① 自己拉取（读凭据值 + �
 | [`lib/store.js`](lib/store.js) | 知识库落盘（越界即拒） | 写入必须落在配置的 `outDir` 内 |
 | [`lib/process.js`](lib/process.js) / [`lib/pipeline.js`](lib/pipeline.js) | 整理（模型判断）/ 阶段判成（`classifyStage`） | 判成**退出码优先**，不看措辞（§4.5） |
 | [`tools/pipeline/`](tools/pipeline/README.md) | **作者自己的参考流水线**（随包发布，通用代码、无个人数据） | 别人用法是换目录（`config.pipelineDir`） |
-| [`data/kb/`](data/kb) · `data/import/` | 用户全部历史对话 + 管线运行时数据 | **不入库、不随包**；`data/import/health-facts` 是**独立 git 仓库** |
-| [`docs/`](docs/PIPELINE-CONTRACT.md) · [`test/`](test) | 契约文档 / 8 个测试文件（87 例） | 契约细节一律读 docs，不要从代码反推后再写进文档 |
+| `data/kb/` · `data/import/` | 用户全部历史对话 + 管线运行时数据 | **不入库、不随包**（所以新克隆里没有它们 —— 文档里不要写成文件链接）；`data/import/health-facts` 是**独立 git 仓库** |
+| [`docs/`](docs/PIPELINE-CONTRACT.md) · [`test/`](test) | 契约文档 / 8 个测试文件（90 例） | 契约细节一律读 docs，不要从代码反推后再写进文档 |
 
 ## 3. 命令
 
 ```sh
-npm test              # node --test，8 个文件 87 例（2026-10-16 实测 87 pass / 0 fail）
+npm test              # node --test，8 个文件 90 例（2026-10-16 实测 90 pass / 0 fail）
 npm run check         # 逐文件语法检查 lib/*.js + 管线两个入口 + ESM import 冒烟
 npm run check:types   # tsc --noEmit（唯一 devDependency 是 typescript；未装会明确跳过）
 npm run pack:check    # npm pack --dry-run：看发布包内容
@@ -128,14 +128,18 @@ if ($bad) { "❌ 包内出现不该发布的东西：$($bad -join ', ')" } else 
 - **本机知识库不在仓库里**：`data/kb/`（`conversations/*.md` + `conversations.jsonl` + `catalog.json`）。
   规模别写死，跑 `node data\kb\tools\kb.mjs stats`。检索入口与"不要全量递归"的判据见 `D:\dsh\AGENTS.md`。【设计约束】
 
-## 7. 已知不一致（2026-10-16 复核发现，**没有擅自改**）
+## 7. 复核发现与处置（2026-10-16）
 
-- **`lib/index.js` 头部的 capability posture 段（约 8–18 行）已过期**：它写着 "**No credentials** … never touches
-  the DSH `credentials` service" 与 "**No network**"，而同一文件在 1174–1394 行就在调 `ctx.get('credentials')`
-  与 `creds.resolve(...)`，并 import 了 `fetch` 侧的模块。
-  **读法**：那段是**实现前的设计目标**，当前能力以 [`docs/CAPABILITY-DISCLOSURE.md`](docs/CAPABILITY-DISCLOSURE.md)
-  第一节的对照表与 README 为准（该文档开头就声明"设计目标与实测并排"）。要改这段 docblock 的话，
-  它与能力披露的措辞是一对，**同一次改**。【设计约束】
+- **文档里不要链接 `data/` 下的路径**（当场踩到）：`data/` 被 gitignore，**新克隆与 CI 里都不存在**，
+  而 §4.1 那条链接检查会逐个要求文档里的本地链接真实存在 —— 链接到它 = **CI 直接红**。
+  2026-10-16 在"新克隆"沙盒里就是这么红的（本文件当时把 `data/kb` 写成了文件链接）。
+  判据：这类路径一律写成代码片段（`data/kb` 这样），不写成文件链接。【硬经验】
+- **`lib/index.js` 头部的能力陈述已修正**（2026-10-16）：那段 docblock 是"只做编排"的早期版本留下来的，
+  写着 "**No credentials** … never touches the DSH `credentials` service" 与 "**No network**"，
+  而同一文件早在调 `credentials.resolve()`；路由清单也停在 5 条（实际 14 条）。现在改成按**三块能力分别陈述**、
+  写明红线在哪，并逐行列出 14 条路由；配套加了断言（头部清单必须与实际路由一一对应、写的总数必须相等）。
+  ⚠️ **同一事实还有第二个落点**：GitHub 仓库的 description 当时也写着 "No credentials, no network of its own"，
+  2026-10-16 一并改掉 —— 一处能力陈述有多个落点时，**要么同一次改完，要么就会漂**。【硬经验】
 - **`data\import\health-facts\AGENTS.md` 是受保护规则文件**（在 `D:\dsh\tools\rules-files.mjs` 清单里），
   **本文件没有登记进那份清单**。要不要补进去由用户定（参照该文件 48–49 行对 `session-length.js` 的同类留白）。【未验证】
 

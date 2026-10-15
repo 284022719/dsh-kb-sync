@@ -53,24 +53,33 @@ test('normalizeLang()：问号参数、Accept-Language、大写、未知值', ()
 
 test('translator()：命中、回落、占位符、源语言恒等', () => {
   const en = translator('en')
-  assert.equal(en('刷新状态'), 'Refresh')
+  assert.equal(en('刷新'), 'Refresh')
   assert.equal(en('这句话还没翻译'), '这句话还没翻译', '缺译回落中文原文，页面不会空掉')
   assert.equal(en('　{days} 天', { days: 3 }), '　3 days')
   assert.equal(en('{a} 与 {b}', { a: 1 }), '1 与 {b}', '缺参数时保留占位符，不吐 undefined')
   const zh = translator('zh')
-  assert.equal(zh('刷新状态'), '刷新状态')
+  assert.equal(zh('刷新'), '刷新')
   assert.deepEqual(dictionary('zh'), {})
-  assert.equal(dictionary('en')['刷新状态'], 'Refresh')
-  assert.equal(dictionary('fr')['刷新状态'], undefined, '没有该语言的文件就返回空表而不是报错')
+  assert.equal(dictionary('en')['刷新'], 'Refresh')
+  assert.equal(dictionary('fr')['刷新'], undefined, '没有该语言的文件就返回空表而不是报错')
 })
 
 test('中文页：默认渲染、含中文、语言切换链接、内联字典为空', () => {
   const html = renderPage({ prefix: '/__dsh-kb-sync', lang: 'zh', root: 'D:\\p', configFile: 'C:\\c.json' })
   assert.match(html, /<html lang="zh-CN">/)
-  assert.match(html, /刷新状态/)
+  assert.match(html, /更新知识库/)
   assert.match(html, /root = D:\\p/)
   assert.match(html, /href="\?lang=en"/)
   assert.match(html, /var DICT = \{\};/, '源语言不需要内联译文表')
+})
+
+test('页面里不出现内部术语（段 1 / 段 2 / 整链 / 阶段 N / dry-run / 落盘 / ①②③④⑤）', () => {
+  // 2026-10-15：用户看着页面问"段 2 是什么神奇称呼"——这些是开发者视角的段名与流程名，
+  // 界面上要说人话（抓取 / 整理 / 更新知识库 / 试运行 / 写入）。这条判据防止它们再爬回来。
+  const html = renderPage({ prefix: '/__dsh-kb-sync', lang: 'zh', root: 'D:\\p', configFile: 'C:\\c.json' })
+  for (const banned of ['段 1', '段 2', '整链', '阶段 2', '阶段 3', 'dsh headless', 'dry-run', '落盘', '①', '②', '③', '④', '⑤']) {
+    assert.equal(html.includes(banned), false, `页面里不该再出现「${banned}」`)
+  }
 })
 
 test('英文页：把译文表的 msgid 全删掉后，不允许残留任何中文', () => {
@@ -83,7 +92,7 @@ test('英文页：把译文表的 msgid 全删掉后，不允许残留任何中�
   })
   assert.match(html, /<html lang="en">/)
   assert.match(html, /Refresh/)
-  assert.match(html, /Full chain/)
+  assert.match(html, /Update knowledge base/)
 
   let stripped = html
   // 先长后短：字典里键互相包含（`未运行` 是 `未运行（…）` 的前缀），短键先剥会留下残片。

@@ -109,13 +109,13 @@ test('label 与字典跟随当前语言', () => {
   plugin.apply(zh.ctx)
   const zhReg = zh.calls.slots.find((c) => c.op === 'register')
   assert.equal(zhReg.options.label(), '对话知识库')
-  assert.equal(zhReg.options.inject().t('act.pull'), '拉取增量')
+  assert.equal(zhReg.options.inject().t('act.pull'), '抓取新对话')
 
   const en = makeCtx('en')
   plugin.apply(en.ctx)
   const enReg = en.calls.slots.find((c) => c.op === 'register')
   assert.equal(enReg.options.label(), 'KB sync')
-  assert.equal(enReg.options.inject().t('act.pull'), 'Pull new')
+  assert.equal(enReg.options.inject().t('act.pull'), 'Fetch new chats')
 })
 
 test('summarizeStatus() 把 /status 折成设置页要的那几行', () => {

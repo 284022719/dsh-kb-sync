@@ -1,0 +1,80 @@
+name: Bug report / 缺陷报告
+description: 插件没按预期工作：报错、页面不对、抓取/整理失败
+title: "[bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 先花 30 秒排除两个已知坑
+
+        1. **改了配置但没重启应用** —— 配置只在插件**加载时**解析一次，改完必须重启才生效（`/status` 会继续报旧值）。
+        2. **改了源码但应用里跑的是旧模块** —— `file:` 安装是**复制快照**：要
+           `remove` → `add` → 重启，信任指纹变化后还需在 **设置 → 插件体检** 里重新确认。
+
+        能跑 `npm test`（或 `npm run preflight`）的话请贴结论；报错**请贴原文**，不要转述。
+
+  - type: input
+    id: versions
+    attributes:
+      label: 环境
+      description: 插件版本 / DSH 版本 / Node 版本 / 操作系统
+      placeholder: "dsh-kb-sync 0.2.0 · DSH 0.2.0-rc.2 · Node 24.19.0 · Windows 11"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: block
+    attributes:
+      label: 哪一块出的问题
+      options:
+        - 拉取（抓取新对话 / 补齐全量历史 / 检索）
+        - 编排（运行我配置的同步脚本 / 跑体检 / 读日志）
+        - 整理（模型归类与提炼 / 试运行 / 写入并重建）
+        - 更新知识库（整链：登录态 → 查新增 → 抓取 → 整理 → 体检）
+        - 控制页或设置分节的显示/文案
+        - 安装、加载、配置
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 期望什么 / 实际发生了什么
+      description: 期望 vs 实际，越具体越好
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开控制页，点「更新知识库」
+        2. 页面显示 …
+        3. 期望 …，实际 …
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关输出
+      description: |
+        控制页「运行详情与诊断 → 上次更新的每一步」的结论与原因，或日志尾部。
+        ⚠️ **贴之前抹掉 token、凭据、个人对话内容** —— 这些不要出现在公开 issue 里。
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我确认这不是"配置改了但没重启应用"或"源码改了但跑的是旧模块"
+          required: true
+        - label: 我贴出的内容里没有 token、凭据或个人对话原文
+          required: true
+        - label: 这**不是**安全问题（安全问题请走 SECURITY.md 的私密通道）
+          required: true

@@ -21,7 +21,7 @@
 > 页面上默认那个按钮就是 **dry-run**：跑模型 + 跑校验，但不写任何文件。
 
 > **客户端半部（`lib/client.js`，2026-10-12 加）**：只做一件事 —— 在宿主 Web 端注册一个
-> `settings.section`（**设置 → dsh-kb-sync**），显示状态摘要并给三个动作（拉取增量 / 跑整链 / 打开控制页）。
+> `settings.section`（**设置 → dsh-kb-sync**），显示状态摘要并给三个动作（**抓取新对话 / 更新知识库 / 刷新**）。
 > 它通过**同源 `fetch`** 打插件自己的路由（写操作带 `x-dsh-kb-sync: 1`，与页面同一套守卫），
 > **不新增出网域名、不读凭据、不写任何文件**——所以 §四 的五条红线判定不变，`dsh-trust-check`
 > 也不会因为它变红。它没有构建步骤（手写，符合客户端模块表的 `window.__ModuleLoader__.load` 形态）；
@@ -76,7 +76,7 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2)
 
 | 红线 | 是否命中 | 依据 |
 |---|---|---|
-| 1. 声明 install / postinstall / preinstall | 否 | `package.json` 的 `scripts` 只有 `test` |
+| 1. 声明 install / postinstall / preinstall | 否 | `package.json` 的 `scripts` 只有开发用命令（`test` / `check` / `check:types` / `pack:check` / `preflight`），**没有任何安装期钩子**；`test/shipped.test.mjs` 有一条断言钉住这一点 |
 | 2. `cordis.patch.yml` override / disable `@deepseek-ai/*` 核心 bundle | 否 | 补丁只有一条 `insert` |
 | 3. 读凭据/密钥**值** 且 有网络 | **是（命中）** | `lib/index.js` 的 `credentials.resolve` + `lib/deepseek.js` 的 `fetch`；约束见第三节 |
 | 4. 明文 `http://` 外连 且 有网络 | 否 | 唯一 `http://` 字面量是 `new URL(req.url, 'http://localhost')` 的解析基址 |

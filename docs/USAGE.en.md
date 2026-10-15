@@ -8,14 +8,14 @@
 ## 1. Five-minute quick start
 
 1. **Install**: `dsh plugin --profile <your profile> add github:284022719/dsh-kb-sync`, then **restart DSH**.
-2. **Open the control page**: `http://127.0.0.1:<your DSH web port>/__dsh-kb-sync/` (same port as the GUI).
+2. **Open the control page** (on the author's machine the entry is the console **Sync** tab, which embeds it): `http://127.0.0.1:<your DSH web port>/__dsh-kb-sync/` (same port as the GUI).
 3. **Paste the token (§①)**: sign in to chat.deepseek.com → F12 → Application → Local Storage → copy `userToken` → paste → Save.
    It only goes into the DSH credential service; the plugin writes it to no file, log or response.
 4. **Pull once (§②)**: *Start pull* for everyday catching-up; *Full backfill* the first time you want complete history.
 5. **Search (§③)**: a keyword; every hit can be expanded to the full markdown.
-6. **Health check (§④)**: *Run the full chain* does token → recon → fetch → segment 2 → doctor in one go.
+6. **Health check**: *Update knowledge base* does sign-in → check-for-new → fetch → organise → check-up in one go.
 
-> There is also an in-app entry: **Settings → dsh-kb-sync** (status summary plus Pull new / Run full chain / Open control page).
+> There is also an in-app entry: **Settings → dsh-kb-sync** (status summary plus Fetch new chats / Update knowledge base).
 
 ## 2. "I want to…" → where to click
 
@@ -23,8 +23,8 @@
 |---|---|---|---|
 | Bring in newly chatted conversations | §② *Start pull* (incremental) | yes (only new/continued) | no |
 | Fill in older history | §② *Full backfill* (official export zip) | only when the export has more | no |
-| Run the whole chain once | §④ *Run the full chain* | yes (incl. rebuild) | **yes** (segment 2 calls the model) |
-| See what the model would decide, without writing | §⑤ *Validate only (dry run)* | no knowledge-base writes, only `sync/out/` | yes |
+| Run the whole update once | *Update knowledge base* | yes (incl. rebuild) | **yes** (the organise step calls the model) |
+| See what the model would decide, without writing | *Dry run (show what would change)* | no knowledge-base writes, only `sync/out/` | yes |
 | Apply the judgement and rebuild | §⑤ *Run, write and rebuild* | yes | yes |
 | Check the knowledge base for corruption | toolbar *Run knowledge-base check* | no | no |
 | Read one conversation locally | §③ search → *open full text* | no | no |
@@ -36,7 +36,7 @@
 |---|---|---|---|
 | **Incremental pull** | the list endpoint returns **at most the newest 100** and **cannot page** (`count` caps at 100; `page`/`cursor`/… are ignored; `POST` → 405 — measured 2026-10-12) | every day | it only guarantees "grows forward each day"; gaps in the middle can never be filled by it |
 | **Full backfill** | the official export package (the server generates one complete export) | the first time, or when you spot a gap | runs in the background for minutes; phases `trigger → waiting-export → downloading → parsing → merging → done` |
-| **Full chain** | both of the above + segment 2 + doctor | one command for everything | **consumes model quota**; a 6-hour freshness gate applies (see §6) |
+| **Update knowledge base** | both of the above + organise + check-up | one command for everything | **consumes model quota**; a 6-hour freshness gate applies (see §6) |
 
 > New conversations are always inside the incremental window (the list is sorted by `updated_at` descending), so "the web clearly has new chats but it reports 0" is usually not a plugin defect — check the conversation's real time, then the `recon`/`fetch` readings in `/status`'s `chain.report`.
 
@@ -47,7 +47,7 @@
 - *open full text* renders the normalized markdown (**thinking process and web-search records included**); originals over 400 KB are truncated and flagged.
 - For scripting: `/__dsh-kb-sync/search?q=<words>&role=user` returns JSON.
 
-## 5. Segment 2 (§⑤): dry run versus apply
+## 5. Organise (model classification & extraction): dry run versus write
 
 The default button is the **dry run**, and its value is seeing exactly what would be written:
 

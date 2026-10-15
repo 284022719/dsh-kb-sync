@@ -41,8 +41,21 @@ set "STATE=%PIPE_DIR%\..\..\data\import\LAST-SYNC.txt"
 for %%f in ("%STATE%") do set "STATE=%%~ff"
 if not exist "%STATE%" set "STATE_FALLBACK=1"
 
+REM ---- --force: bypass the plugin's 6h freshness gate ----
+REM Why: after a failed run the status line just written makes the next manual rerun
+REM look "fresh", so the plugin returns skipped and the chain never runs. The control
+REM page button passes force, but a person at a console could not - this closes that.
+REM Note for cmd: the body is assembled with delayed expansion and the quotes are
+REM written from a variable, so the braces/quotes never have to survive `for` parsing.
+set "BODY={\"apply\":true}"
+set "ARGF=%1"
+if /i "%ARGF%"=="--force" set "BODY={\"apply\":true,\"force\":true}"
+if /i "%ARGF%"=="-f"      set "BODY={\"apply\":true,\"force\":true}"
+
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format s"') do set "STAMP=%%i"
 echo [%STAMP%] trigger start (pipe=%PIPE_DIR%) >> "%LOG%"
+if /i "%ARGF%"=="--force" echo [%STAMP%] force requested: freshness gate bypassed >> "%LOG%"
+if /i "%ARGF%"=="-f"      echo [%STAMP%] force requested: freshness gate bypassed >> "%LOG%"
 
 REM Size of the state file just before the POST. If it grows afterwards, the
 REM plugin itself wrote the outcome line (its writeStatusLine) and this file must
@@ -80,7 +93,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "if (-not $up) { Write-Output ('host did not answer ' + $status + ' within ~3 minutes - is the DSH app running?'); exit 3 }" ^
   "Write-Output ('POST ' + $t.url);" ^
   "try {" ^
-  "  $r = Invoke-WebRequest -Uri $t.url -Method POST -TimeoutSec 3600 -UseBasicParsing -Headers @{ $t.header = '1'; 'content-type' = 'application/json' } -Body '{\"apply\":true}';" ^
+  "  $r = Invoke-WebRequest -Uri $t.url -Method POST -TimeoutSec 3600 -UseBasicParsing -Headers @{ $t.header = '1'; 'content-type' = 'application/json' } -Body '%BODY%';" ^
   "  $j = $r.Content | ConvertFrom-Json;" ^
   "  if ($j.skipped) { Write-Output ('chain skipped: ' + $j.reason); exit 0 };" ^
   "  foreach ($s in $j.stages) { Write-Output ('  {0,-8} {1,-14} {2,7} ms  {3}' -f $s.stage, $s.code, $s.ms, $s.message) };" ^

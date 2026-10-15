@@ -1,6 +1,6 @@
 {
   "name": "dsh-kb-sync",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DeepSeek Harness plugin: pull your DeepSeek web conversations into a local knowledge base (markdown + JSONL + catalog) with in-plugin search, orchestrate a sync/integrity command you already own from a same-origin control page, and run the pipeline's judgement step in process through the host llm service (one stream, JSON validated before anything lands).",
   "license": "MIT",
   "author": "284022719",
@@ -89,6 +89,8 @@
     "CHANGELOG.md",
     "README.md",
     "README.en.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
     "LICENSE"
   ],
   "scripts": {

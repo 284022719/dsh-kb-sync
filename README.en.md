@@ -12,7 +12,7 @@ The typical pipeline is "DeepSeek web history → local knowledge base", but the
 
 ![dsh-kb-sync usage and boundaries](docs/architecture.svg)
 
-<sub>⚠️ The diagram covers the **orchestration half only** (drawn at phase 1). The pull half and segment 2 are not in it — see the route table below for those.</sub>
+<sub>⚠️ The diagram covers the **orchestration half only** (drawn at phase 1). The pull half and the organise step are not in it — see the route table below for those.</sub>
 
 中文说明见 [`README.md`](README.md)；用户指南见 [`docs/USAGE.md`](docs/USAGE.md) / [`docs/USAGE.en.md`](docs/USAGE.en.md)；版本变更见 [`CHANGELOG.md`](CHANGELOG.md)。
 
@@ -20,14 +20,14 @@ The typical pipeline is "DeepSeek web history → local knowledge base", but the
 
 ![control page](assets/screenshots/preview-01-control-page.png)
 
-> Three more (the full page with the per-stage chain table and segment 2, a search hit, the English UI) live in [`assets/screenshots/`](assets/screenshots), listed by `screenshots.json`.
+> Three more (the full page, a search hit, the English UI) live in [`assets/screenshots/`](assets/screenshots), listed by `screenshots.json`.
 > Regenerate with `node tools/make-screenshots.mjs`: it serves a **fake-data-only** local demo and screenshots the real page, so the paths you see (`D:\demo\...`) and the conversations are invented — no data of yours is in the images.
 
 | | |
 |---|---|
 | ✅ Does (orchestration) | Starts your configured command through DSH's `subprocess`; shows progress from your status files and logs; runs your integrity-check command; all from one local control page |
 | ✅ Does (pull) | Calls chat.deepseek.com with the `userToken` from the DSH credential service: conversation list → only new / continued threads (the authoritative thread is located by walking `chat_session.current_message_id` up the parent chain) → `conversations/*.md` + `conversations.jsonl` + `catalog.json` → in-plugin search |
-| ✅ Does (segment 2) | In-process judgement: prepare inputs → host `llm` returns one JSON → validate with the pipeline's own script → apply + rebuild. The default button is a dry run |
+| ✅ Does (organise) | In-process judgement: prepare inputs → host `llm` returns one JSON → validate with the pipeline's own script → apply + rebuild. The default button is a dry run |
 | ❌ Never | Writes the token to any file, log or response (it only lives in the credential service); contacts anything other than `chat.deepseek.com` **from the pull half** (segment 2 goes out through the host's `llm` adapter, whose domain the host configures); reads the contents of the expiring `.token` file (it only `stat`s its mtime); registers prompt sections; overrides a core bundle; ships an install script or runtime dependency |
 
 ## Requirements and install
@@ -61,33 +61,56 @@ Most-used keys: `root` (your pipeline root; `syncScript` / `logDir` / `lastSyncF
 
 ## Usage
 
-Open **`http://127.0.0.1:<your DSH web port>/__dsh-kb-sync/`** (same port as the GUI). The page is a toolbar plus five numbered sections, with four read-only status cards below.
+The page lives at **`http://127.0.0.1:<your DSH web port>/__dsh-kb-sync/`** (same port as the GUI).
+**It is laid out by task — a one-line verdict bar, then Bring in new chats / Find content / Organise, with the heavy detail folded into "Run details & diagnostics"** (reworked 2026-10-15):
 
-> You do not have to open the page: **Settings → dsh-kb-sync** in the app carries the same status summary (configuration, pipeline root, knowledge base, credential age, size, activity) and three actions — **Pull new**, **Run full chain**, **Open control page**. It follows the host UI language and deliberately offers **no config editing** (settings are resolved once when the plugin loads, so an editable form would lie until the next restart).
+> You do not have to open the page: **Settings → dsh-kb-sync** in the app carries the same status summary (configuration, pipeline root, knowledge base, credential age, size, activity) and two actions — **Fetch new chats**, **Update knowledge base**. It deliberately has **no "open control page" button**: there should be exactly one answer to "where do I go" (on the author's machine that is the console's **Sync** tab, which embeds this very page). It follows the host UI language and deliberately offers **no config editing** (settings are resolved once when the plugin loads, so an editable form would lie until the next restart).
 
 > **Language**: the control page is Chinese by default; `?lang=en` forces English, and without the parameter it follows the browser's `Accept-Language` (unknown languages fall back to Chinese). There is a switcher in the top-right corner. Chinese is the **source language** — the Chinese sentences in the page *are* the keys of the translation table (`locale/en.json`), and a missing translation falls back to the Chinese source, so adding a language never requires touching page code.
 
-**① Web login state** — paste the `userToken` once. It goes into the DSH credential service only; the plugin never writes it anywhere and it never appears in a log or response.
+**The verdict bar (first screen)** — one sentence (fine / worth a look / last run failed) plus three key numbers (conversations in the KB, last update, sign-in age) and the **Update knowledge base** button. A "needs your attention" block appears only when there is something to do (sign-in getting old, last update failed, no root configured).
 
-**② Pull**
-- *Pull new conversations (incremental)*: conversation list → only new / continued threads → markdown + JSONL + catalog; a continued thread is updated in place and keeps its filename.
-- *Full backfill*: uses the official export package (`export_all` → poll until ready → download zip → parse `conversations.json`). Use it for complete history; it runs in the background and the page polls the phase every 3 s (`trigger → waiting-export → downloading → parsing → merging → done`).
+**Bring in new chats**
+- *Fetch new chats (incremental)*: conversation list → only new / continued threads → markdown + JSONL + catalog; a continued thread is updated in place and keeps its filename.
+- *Backfill full history* (folded away, only when needed): uses the official export package (`export_all` → poll until ready → download zip → parse `conversations.json`). It runs in the background and the page polls the progress every 3 s (`trigger → waiting-export → downloading → parsing → merging → done`).
 
-**③ Search** — by title and body, with an optional "user messages only" filter; every hit can be expanded to the full markdown of that conversation (thinking process and web-search records included).
+**Find content** — by title and body, with an optional "user messages only" filter; every hit can be expanded to the full markdown of that conversation (thinking process and web-search records included).
 
-**④ Full chain** — `token → recon → fetch → process → doctor` in order, each with its own verdict, exit code and duration. A failing row says why (`token-expired` / `failed` / `spawn-failed` / `finished-with-crash`). The freshness gate returns `skipped` when the last success is less than `chainMinIntervalMs` ago; the page button passes `force:true` to bypass it.
+**Organise (model classification & extraction)** — hands the newly fetched chats to the host model once (topic assignment, health facts, finance candidates):
+- *Dry run (show what would change, write nothing)* — the default; prepare inputs → the host `llm` returns one JSON judgement → write `sync/out/` → validate with the pipeline's own `apply-extraction.mjs`.
+- *Write and rebuild* — only after validation passes; rebuilds the knowledge base and the health profile.
 
-**⑤ Segment-2 judgement** — *validate only* (dry run, writes nothing) or *run, apply and rebuild*. The model only ever produces JSON; the pipeline's `apply-extraction.mjs` validates it (classification index set, topic legality, specialty parent) and only then does anything land.
+The model only ever produces JSON and nothing lands before validation — deliberate: let the model edit `health/` or the finance ledger directly and a wrong number goes unnoticed.
+(This step used to be called "segment 2" and ran inside a separate `dsh headless` runtime; it now calls the host model in-process and is called **Organise**.)
 
-**Manual vs scheduled trigger.** `tools/pipeline/trigger.cmd` only "pokes" the chain: it picks a usable `trigger-source.json`, waits for the host `/status`, then `POST`s `/pipeline` and appends each stage's result to `trigger.log`. It orchestrates nothing itself. A Windows scheduled task is **optional**; with or without it the page buttons hit the same routes. Rebuild commands for the task are in [`tools/pipeline/README.md`](tools/pipeline/README.md) §3.
+**Update knowledge base (the primary button)** — runs
+**sign-in check → check for new content → fetch → organise → check-up** in order; every step's verdict,
+exit code and duration lands in "Run details & diagnostics → Every step of the last update"
+(the raw step ids `token/recon/fetch/process/doctor` live in the hover tooltip, for matching logs).
+A failing row says why (`token-expired` / `failed` / `spawn-failed` / `finished-with-crash`).
+The freshness gate returns `skipped` when the last success is less than `chainMinIntervalMs` ago; the page button passes `force:true` to bypass it.
+
+**"Run details & diagnostics" also holds** the current status rows, knowledge-base size, the newest log tail, **Run check-up**, and **Run my configured sync script** (the orchestration half; the command comes from your config).
+
+### Page layout conventions (reworked 2026-10-15 — do not roll this back)
+
+- The first screen answers only "is it fine, and what do I press"; details live in `<details>`.
+- Sections are grouped **by task** (bring in / find / organise / diagnose) and are **not numbered**
+  (the old ①–⑤ carried no information and blurred what actually mattered).
+- **No internal jargon in the UI**: segment 1 / segment 2 / full chain / phase 3 / dry-run / "landing" /
+  `dsh headless` are developer-facing. The UI says fetch / organise / update / dry run / write.
+  Two tests pin this (`test/locale.test.mjs` and `test/plugin.test.mjs`) — the jargon can't creep back.
+- **One button per action**: previously the toolbar and the cards each had their own "pull" / "backfill".
+
+**Manual vs scheduled trigger.** `tools/pipeline/trigger.cmd` only "pokes" the chain: it picks a usable `trigger-source.json`, waits for the host `/status`, then `POST`s `/pipeline` and appends each step's result to `trigger.log`. It orchestrates nothing itself. A Windows scheduled task is **optional**; with or without it the page buttons hit the same routes. Rebuild commands for the task are in [`tools/pipeline/README.md`](tools/pipeline/README.md) §3.
 
 ### Routes
 
 | Route | Method | Purpose |
 |---|---|---|
 | `/__dsh-kb-sync/` | GET | Control page (single-file HTML, no external requests) |
-| `/__dsh-kb-sync/status` | GET | Status JSON: paths, credential-file age, last status lines, newest log tail, pull/backfill/segment-2/chain progress |
-| `/__dsh-kb-sync/pipeline` | POST | The full chain; `{"apply":true}` writes and rebuilds, `{"force":true}` skips the freshness gate |
+| `/__dsh-kb-sync/status` | GET | Status JSON: paths, credential-file age, last status lines, newest log tail, fetch/backfill/organise/update progress |
+| `/__dsh-kb-sync/pipeline` | POST | Update the knowledge base; `{"apply":true}` writes and rebuilds, `{"force":true}` skips the freshness gate |
 | `/__dsh-kb-sync/token` | GET / POST | Query ("configured or not", **never the value**) / store the `userToken` |
 | `/__dsh-kb-sync/token/clear` | POST | Forget the stored `userToken` |
 | `/__dsh-kb-sync/pull` | POST | Incremental pull; returns this round's summary |
@@ -96,7 +119,7 @@ Open **`http://127.0.0.1:<your DSH web port>/__dsh-kb-sync/`** (same port as the
 | `/__dsh-kb-sync/search?q=&role=` | GET | Search; `role=user` restricts to user messages |
 | `/__dsh-kb-sync/conversation?id=` | GET | One conversation as full markdown (>400 KB is truncated and flagged) |
 | `/__dsh-kb-sync/run` | POST | Start your sync command; 409 while one is running |
-| `/__dsh-kb-sync/process` | POST | Segment 2; dry run by default, `{"apply":true}` writes and rebuilds; 409 while running |
+| `/__dsh-kb-sync/process` | POST | Organise (model judgement); validation only by default, `{"apply":true}` writes and rebuilds; 409 while running |
 | `/__dsh-kb-sync/doctor` | POST | Run your integrity-check command; returns stdout / stderr / exit code |
 | `/__dsh-kb-sync/log?name=` | GET | Tail one log file below the log directory (name allowlist + traversal refusal) |
 
@@ -127,12 +150,12 @@ Read it like this: the red line is the *necessary* consequence of the pull half 
 
 ## Known limitations
 
-- **One in-app surface, not a full settings page**: `lib/client.js` registers a **Settings → dsh-kb-sync** section (a few status rows plus Pull new / Run full chain / Open control page / Refresh). It is hand-written with no build step, and it does **not** edit configuration. The full control page (search, reading a conversation in place, the per-stage table) is still its own URL. The assembly contract is checked item by item against the host implementation (the `__ModuleLoader__.load` id must equal the package name, the accepted forms of `exports["./client"]`, the `settings.section` registration fields, `immediately` being a prefetch hint only) — see [`docs/CLIENT-HALF.md`](docs/CLIENT-HALF.md) and the whole install chain (`insert` row → loader specifier → package dir → both halves) in [`docs/INSTALL-PATH.md`](docs/INSTALL-PATH.md).
+- **One in-app surface, not a full settings page**: `lib/client.js` registers a **Settings → dsh-kb-sync** section (a few status rows plus Fetch new chats / Update knowledge base / Refresh). It is hand-written with no build step, and it does **not** edit configuration. The full control page (search, reading a conversation in place, the per-step table) is still its own URL. The assembly contract is checked item by item against the host implementation (the `__ModuleLoader__.load` id must equal the package name, the accepted forms of `exports["./client"]`, the `settings.section` registration fields, `immediately` being a prefetch hint only) — see [`docs/CLIENT-HALF.md`](docs/CLIENT-HALF.md) and the whole install chain (`insert` row → loader specifier → package dir → both halves) in [`docs/INSTALL-PATH.md`](docs/INSTALL-PATH.md).
 - **The control page and the in-app section both ship Chinese and English**: the page defaults to Chinese and switches via `?lang=en` or `Accept-Language`; the settings section follows the host locale. **Server-side diagnostics stay Chinese** (`/status` messages, per-stage chain output, the pipeline's own script output) — they are troubleshooting text, not worth translating yet.
 - Requires the host's `subprocess` service; when missing, `/run` and `/doctor` say so explicitly instead of failing silently.
 - State is polled (every 3 s while something runs), not pushed.
 - **Incremental pull can only ever see the newest 100 conversations**: the list endpoint caps `count` at 100 and ignores paging parameters (verified 2026-10-12: `count=101` → `ILLEGAL_COUNT`; `page` / `offset` / `seq_id` / `cursor` ignored; `POST` → 405). Complete history comes from the full backfill.
-- Verified on Windows + DSH 0.2.0-rc.2: control page, `/status`, `/doctor`, out-of-bounds and cross-site refusal, the chain / segment 2 / full backfill from the page. The POSIX execution branch is written but **not** tested on a real POSIX host.
+- Verified on Windows + DSH 0.2.0-rc.2: control page, `/status`, `/doctor`, out-of-bounds and cross-site refusal, the update flow / the organise step / the full backfill from the page. The POSIX execution branch is written but **not** tested on a real POSIX host.
 - `userToken` expires (hours to days): pulls then fail and you paste a new one. It is your account credential — do not share it.
 - By default the plugin does not share a knowledge-base directory: its library lives in its own `data/kb`. Only if you point `outDir` at a directory another script also writes will the two rewrite `catalog.json` / `conversations.jsonl` under each other (read-modify-write).
 - Search scans the JSONL directly with no index — fine for a few thousand conversations, not for ten times that.
@@ -140,7 +163,7 @@ Read it like this: the red line is the *necessary* consequence of the pull half 
 ## Development
 
 ```sh
-npm test        # node --test: 86 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, language wiring, client-half contract, translation-table integrity, doc consistency)
+npm test        # node --test: 90 cases (routes, same-origin guard, traversal refusal, argv, credential never read, timestamps, language wiring, client-half contract, translation-table integrity, doc consistency)
 npm run check   # syntax-check every lib file + an ESM import smoke test
 npm run check:types  # tsc --noEmit over lib/index.d.ts + types/usage.ts (needs npm install; dev only)
 npm run pack:check

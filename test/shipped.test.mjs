@@ -82,6 +82,24 @@ test('运行时文件与 retired 不随包发布（files 取反项在位）', ()
   }
 })
 
+/**
+ * 不得声明任何**安装期钩子**。
+ *
+ * 动机：插件是装进用户 DSH 里的代码，`install` / `postinstall` / `preinstall` 会让包在安装时
+ * 执行任意脚本 —— 那是静态扫描的第一条硬红线，也是能力披露里明确声明"没有"的一条
+ * （`docs/CAPABILITY-DISCLOSURE.md` 第四节第 1 行）。声明里写了就必须真的是这样，
+ * 所以这条不是"风格检查"，而是**披露与事实对齐**的机械防线。
+ */
+test('package.json 不声明任何安装期钩子（与能力披露的红线判定一致）', () => {
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
+  const hooks = ['preinstall', 'install', 'postinstall', 'prepare', 'prepublish', 'prepublishOnly']
+  const declared = hooks.filter((h) => pkg.scripts?.[h] !== undefined)
+  assert.deepEqual(declared, [], `package.json 出现了安装期钩子：${declared.join(', ')}（能力披露里声明的是"没有"）`)
+  // 顺带：声明"零运行依赖"也要是真的
+  assert.deepEqual(Object.keys(pkg.dependencies ?? {}), [], 'dsh-kb-sync 的运行依赖必须为空（README 声明"零依赖"）')
+  assert.ok(pkg.devDependencies?.typescript, '唯一的开发依赖是 typescript（类型检查用）')
+})
+
 test('随包目录里没有漏进来的备份/临时文件', () => {
   const junk = files.filter((f) => /\.(bak|tmp|orig|rej)$/i.test(f) || /~$/.test(f) || /\.backup-\d/.test(f))
   assert.deepEqual(junk, [], `这些像是临时文件，不该留在随包目录里：\n  ${junk.join('\n  ')}`)

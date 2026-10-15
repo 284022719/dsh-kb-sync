@@ -15,7 +15,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const DOCS = ['README.md', 'README.en.md', 'CHANGELOG.md', 'docs/USAGE.md', 'docs/USAGE.en.md', 'docs/PUBLISHING.md', 'docs/CAPABILITY-DISCLOSURE.md', 'docs/PIPELINE-CONTRACT.md']
+const DOCS = ['README.md', 'README.en.md', 'CHANGELOG.md', 'docs/USAGE.md', 'docs/USAGE.en.md', 'docs/PUBLISHING.md', 'docs/CAPABILITY-DISCLOSURE.md', 'docs/PIPELINE-CONTRACT.md', 'CONTRIBUTING.md', 'SECURITY.md', 'AGENTS.md']
 
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8')
 
@@ -153,4 +153,51 @@ test('安装行与包元数据一致：patch ↔ package.json ↔ 包名', () =>
 
   // ④ 宿主版本闸门：插件管理器会读 engines.dsh
   assert.ok(typeof pkg.dsh?.engines?.dsh === 'string' && pkg.dsh.engines.dsh.length > 0, 'dsh.engines.dsh 应有值')
+})
+
+/**
+ * `lib/index.js` 头部的路由清单必须与代码里实际处理的路由一一对应。
+ *
+ * 动机（2026-10-16 实测）：那段 docblock 是"只做编排"的早期版本一路留到现在的 —— 它写着
+ * "**No credentials** … never touches the DSH `credentials` service" 与 "**No network**"，
+ * 而同一个文件里早在调 `credentials.resolve()`；路由清单也停在 5 条（实际 14 条）。
+ * 头部是读者（和静态扫描工具）看到的第一段话，**它写错比不写更糟**，所以钉住可机械检查的部分。
+ */
+test('lib/index.js 头部的路由清单与实际路由一一对应（防头部过期）', () => {
+  const code = read('lib/index.js')
+  const header = code.slice(0, code.indexOf('@module'))
+  const listed = new Set([...header.matchAll(/^\s*\*\s+(?:GET|POST)\s+(\S+)/gm)].map((m) => m[1]))
+  const handled = new Set([...code.matchAll(/sub === '(\/[^']*)'/g)].map((m) => m[1]))
+  if (/sub === '\/' \|\| sub === ''/.test(code)) handled.add('/')
+
+  assert.ok(listed.size >= 10, `头部应当逐行列出路由，实际解析出 ${listed.size} 条`)
+  const undocumented = [...handled].filter((r) => !listed.has(r)).sort()
+  const phantom = [...listed].filter((r) => !handled.has(r)).sort()
+  assert.deepEqual(undocumented, [], `代码里有、头部清单里没有：${undocumented.join(', ')}`)
+  assert.deepEqual(phantom, [], `头部清单里有、代码里没有：${phantom.join(', ')}`)
+
+  const claim = header.match(/, (\d+) paths in total/)
+  assert.ok(claim, '头部应写明路由总数（形如 "14 paths in total"）')
+  assert.equal(Number(claim[1]), handled.size, `头部说 ${claim[1]} 条，代码里是 ${handled.size} 条`)
+})
+
+/**
+ * 披露文档写的"设置分节有几个动作、分别叫什么"，必须等于 `lib/client.js` 的 `act.*` 字典。
+ *
+ * 动机（2026-10-16 实测到的漂移）：2026-10-15 控制页重排删掉了"打开控制页"入口、动作改名成
+ * 抓取新对话 / 更新知识库 / 刷新 —— README、页面、字典都改了，**披露文档那一句漏改**，
+ * 一直写着"拉取增量 / 跑整链 / 打开控制页"。能力披露是给用户核对"这插件会做什么"的文档，
+ * 它写着界面上不存在的按钮，等于把来核对的人引到错的地方。
+ */
+test('披露文档里的客户端动作 = lib/client.js 的 act.* 字典（防改名漂移）', () => {
+  const client = read('lib/client.js')
+  const zh = client.split('const zh = {')[1].split('const en = {')[0]
+  const actions = [...zh.matchAll(/'act\.\w+':\s*'([^']+)'/g)].map((m) => m[1])
+  assert.ok(actions.length >= 3, `应当解析出客户端分节的几个动作，实际 ${actions.length}`)
+
+  const doc = read('docs/CAPABILITY-DISCLOSURE.md')
+  const sentence = doc.match(/显示状态摘要并给[^（]*动作（([^）]+)）/)?.[1]
+  assert.ok(sentence, '披露文档应写明设置分节给了哪几个动作（形如"给三个动作（… / … / …）"）')
+  const documented = sentence.replace(/\*\*/g, '').split('/').map((s) => s.trim())
+  assert.deepEqual(documented, actions, '披露文档里的动作名与 lib/client.js 的 act.* 字典不一致')
 })

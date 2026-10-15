@@ -192,9 +192,15 @@ test('GET / serves the control page from the plugin prefix', async () => {
   const res = await request(host, { url: `${PREFIX}/` })
   assert.equal(res.status, 200)
   assert.match(res.headers['content-type'], /text\/html/)
-  assert.match(res.body, /dsh-kb-sync 控制页/)
+  assert.match(res.body, /知识库同步/)
   assert.match(res.body, /\/__dsh-kb-sync/)
   assert.equal(res.body.includes('<script src='), false)
+
+  // 2026-10-15：页面重排后**不出现**内部术语（用户："段 2 是什么神奇称呼"）。
+  // 这里从"真路由返回的 HTML"再钉一次（locale.test 那条盯的是 renderPage 的直出）。
+  for (const banned of ['段 2', '整链', 'dsh headless', 'dry-run']) {
+    assert.equal(res.body.includes(banned), false, `控制页里不该再出现「${banned}」`)
+  }
 })
 
 test('the control page follows ?lang= and falls back through Accept-Language', async () => {
@@ -203,7 +209,7 @@ test('the control page follows ?lang= and falls back through Accept-Language', a
 
   const zh = await request(host, { url: `${PREFIX}/` })
   assert.match(zh.body, /<html lang="zh-CN">/)
-  assert.match(zh.body, /刷新状态/)
+  assert.match(zh.body, /刷新/)
 
   const en = await request(host, { url: `${PREFIX}/?lang=en` })
   assert.match(en.body, /<html lang="en">/)

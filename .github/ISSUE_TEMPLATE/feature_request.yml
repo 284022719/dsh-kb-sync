@@ -1,0 +1,52 @@
+name: Feature request / 功能建议
+description: 想要一个现在没有的能力，或某个地方用起来不顺
+title: "[feat] "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提之前值得看一眼的两处，避免建议与既定边界冲突：
+
+        - [`README.md`](https://github.com/284022719/dsh-kb-sync#它做什么--不做什么) 的「它做什么 / 不做什么」表；
+        - [`docs/CAPABILITY-DISCLOSURE.md`](https://github.com/284022719/dsh-kb-sync/blob/main/docs/CAPABILITY-DISCLOSURE.md) 第一节的三块能力与各自的 footprint。
+
+        这个插件的既有边界（**刻意的**，不是没做）：模型只产出 JSON、**从不直接改档案**；财务只写候选区、
+        永不自动入账；应用内设置分节不提供配置编辑（配置加载时解析一次，页面能改反而会骗人）。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你想解决什么问题
+      description: 说场景比说方案更有用 —— 你现在怎么绕过去的？
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你设想的做法（可选）
+    validations:
+      required: false
+
+  - type: dropdown
+    id: candidate
+    attributes:
+      label: 这条建议大概属于哪一块（可选）
+      options:
+        - 拉取
+        - 编排
+        - 整理
+        - 控制页 / 设置分节
+        - 文档、安装、发布
+        - 不确定
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我理解"拉取"这块必然触发静态扫描的红线（读凭据值 + 出网），相关建议不会以"消除红线"为前提
+          required: false
