@@ -1,6 +1,8 @@
 # dsh-kb-sync
 
 [![ci](https://github.com/284022719/dsh-kb-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/284022719/dsh-kb-sync/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 
 **中文** ｜ [English](README.en.md) ｜ [使用说明](docs/USAGE.md) ｜ [更新日志](CHANGELOG.md)
 
