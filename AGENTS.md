@@ -35,12 +35,12 @@ DSH 插件，**一个插件三块能力**：① 自己拉取（读凭据值 + �
 | [`lib/process.js`](lib/process.js) / [`lib/pipeline.js`](lib/pipeline.js) | 整理（模型判断）/ 阶段判成（`classifyStage`） | 判成**退出码优先**，不看措辞（§4.5） |
 | [`tools/pipeline/`](tools/pipeline/README.md) | **作者自己的参考流水线**（随包发布，通用代码、无个人数据） | 别人用法是换目录（`config.pipelineDir`） |
 | `data/kb/` · `data/import/` | 用户全部历史对话 + 管线运行时数据 | **不入库、不随包**（所以新克隆里没有它们 —— 文档里不要写成文件链接）；`data/import/health-facts` 是**独立 git 仓库** |
-| [`docs/`](docs/PIPELINE-CONTRACT.md) · [`test/`](test) | 契约文档 / 8 个测试文件（90 例） | 契约细节一律读 docs，不要从代码反推后再写进文档 |
+| [`docs/`](docs/PIPELINE-CONTRACT.md) · [`test/`](test) | 契约文档 / 8 个测试文件（91 例） | 契约细节一律读 docs，不要从代码反推后再写进文档 |
 
 ## 3. 命令
 
 ```sh
-npm test              # node --test，8 个文件 90 例（2026-10-16 实测 90 pass / 0 fail）
+npm test              # node --test，8 个文件 91 例（2026-10-16 实测 91 pass / 0 fail）
 npm run check         # 逐文件语法检查 lib/*.js + 管线两个入口 + ESM import 冒烟
 npm run check:types   # tsc --noEmit（唯一 devDependency 是 typescript；未装会明确跳过）
 npm run pack:check    # npm pack --dry-run：看发布包内容
@@ -145,8 +145,8 @@ if ($bad) { "❌ 包内出现不该发布的东西：$($bad -join ', ')" } else 
 
 ## 8. 提交与协作
 
-- **两个仓库**：本目录的 `.git` 与 `data\import\health-facts\.git` 各提交各的；`data/` 整体被根仓库忽略。
-  动手前先 `git status`（2026-10-16 复核时根仓库有 17 个未提交改动，即 CHANGELOG「未发布」那一轮控制页重排）。
+- **两个仓库**：本目录的 `.git` 与 `data\import\health-facts\.git` 各提交各的；**`data/` 被根仓库整个忽略**，
+  所以新克隆里没有它（§4.1 的链接检查对此有反应，见 §7）。动手前先 `git status`。
 - 提交信息沿用本仓库既有风格：`type(scope): 中文正文`，正文写**为什么**与实测读数（`feat/fix/docs/test/chore`）。
 - 派 `workflow`/`subagent` 的子代理**会把提示当执行指令、真的写文件** —— 在本仓库演示时显式命令它写 `tmp\`
   或"不要写文件、只返回结构化结果"（判据见 L1「实测陷阱」与 L2「批量任务的编排」）。【硬经验】

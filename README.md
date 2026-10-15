@@ -42,7 +42,7 @@ dsh-kb-sync/
 ├─ lib/                  插件代码：index（路由+整链编排）/ client（客户端半部：设置页分节）/ locale（多语言）/ deepseek（接口）/ export（回填）/ store（落盘）/ page（控制页：结论条 + 收新对话/找内容/整理/诊断）/ pipeline（分步判定）/ process（整理）
 ├─ locale/               控制页译文（`en.json` —— 中文是源语言，键就是中文原文）
 ├─ docs/                 能力披露与架构图
-├─ test/                 单测（node --test，90 例；文档一致性与随包卫生也在里面）
+├─ test/                 单测（node --test，91 例；文档一致性与随包卫生也在里面）
 ├─ tools/                发布脚本（publish.ps1 / publish.cmd）与发布前预检（preflight.mjs）
 ├─ config.example.json   配置样例 —— 复制成 config.json 就生效（配置跟着代码走）
 ├─ data/kb/              **知识库默认就落在这里**（不入库；可配 outDir 改到别处）
@@ -80,7 +80,7 @@ dsh-kb-sync/
 标准 `dsh.bundle` 插件（host 半部、**零依赖**、无客户端构建步骤）：
 
 ```sh
-dsh plugin --profile web add github:<owner>/dsh-kb-sync
+dsh plugin --profile web add github:284022719/dsh-kb-sync
 ```
 
 装完重启 DSH。要求：DSH 提供 `webServer` 与 `subprocess` 服务（0.2.x 默认都有），Node ≥ 20。
@@ -292,12 +292,12 @@ dsh-kb-sync 0.1.0 — red                    (退出码 2 = 有红线)
 ## 开发
 
 ```sh
-npm test           # node --test：全部 90 个用例
+npm test           # node --test：全部 91 个用例
                    #   插件路由/同源守卫/越界拒绝/argv 构造/凭据文件不读正文/时间口径/语言接线/整理（模型判断）路由端到端（30）
                    # + 客户端半部契约：加载 id、字典中英对齐、settings.section 注册、守卫头、与宿主装配规则逐条对齐（9）
                    # + 多语言：译文表完整、键对齐、占位符一致、英文页无未翻译中文、内联脚本可解析、界面无内部术语（9）
                    # + 整理产出的 JSON 修复与出件合并（15）+ 更新知识库的分步判定（9）
-                   # + 文档一致性：本地链接、路由表、代码头部路由清单、披露文档动作名、script 名、用例数、截图、类型接线、安装行一致性（10）
+                   # + 文档一致性：本地链接、路由表、代码头部路由清单、披露文档动作名、安装命令、script 名、用例数、截图、类型接线、安装行一致性（11）
                    # + 随包卫生：每个随包 JS 过 node --check、.cmd 纯 ASCII、files 取反项在位、无安装期钩子、无备份文件、同目录引用都存在、插件传的标志被脚本承认、判成不依赖措辞（8）
 npm run check      # 逐文件语法检查 lib/*.js（含 client.js / locale.js）+ 管线两个入口 + ESM import 冒烟
 npm run check:types # tsc --noEmit：编译 lib/index.d.ts + types/usage.ts（需先 npm install，仅开发期）

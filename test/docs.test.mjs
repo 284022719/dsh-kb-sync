@@ -201,3 +201,25 @@ test('披露文档里的客户端动作 = lib/client.js 的 act.* 字典（防�
   const documented = sentence.replace(/\*\*/g, '').split('/').map((s) => s.trim())
   assert.deepEqual(documented, actions, '披露文档里的动作名与 lib/client.js 的 act.* 字典不一致')
 })
+
+/**
+ * 安装命令必须是**能照着敲的**：两份 README 与两份用户指南里的 `dsh plugin … add <目标>`
+ * 不能留 `<owner>` 这类占位符 —— 这是全仓库唯一一处"用户会原样复制粘贴"的命令。
+ *
+ * 动机（2026-10-16 实测）：英文 README 与两份 USAGE 早就写成 `github:284022719/dsh-kb-sync`，
+ * 只有中文 README（主 README）还留着 `github:<owner>/dsh-kb-sync` —— 照着敲必然失败。
+ * ⚠️ 只查**安装命令**：能力披露里那段工具输出示例（`source: unpinned | git+https://github.com/<owner>/…`）
+ * 是匿名化过的样例，留着占位符才对。
+ */
+test('安装命令写的是真实仓库地址，不留 <owner> 占位符', () => {
+  const docs = ['README.md', 'README.en.md', 'docs/USAGE.md', 'docs/USAGE.en.md']
+  const found = []
+  for (const doc of docs) {
+    for (const m of read(doc).matchAll(/dsh plugin[^\n]*?\badd\s+([A-Za-z0-9._:@/<>-]+)/g)) found.push({ doc, target: m[1] })
+  }
+  assert.ok(found.length >= 3, `应当在各文档里找到安装命令，实际 ${found.length} 条`)
+  const placeholders = found.filter((f) => /[<>]/.test(f.target)).map((f) => `${f.doc} → ${f.target}`)
+  assert.deepEqual(placeholders, [], '安装命令里还留着占位符（用户复制粘贴会失败）')
+  const wrong = found.filter((f) => !/^(github:284022719\/dsh-kb-sync|file:.+)$/.test(f.target)).map((f) => `${f.doc} → ${f.target}`)
+  assert.deepEqual(wrong, [], '安装命令的目标不是本仓库')
+})

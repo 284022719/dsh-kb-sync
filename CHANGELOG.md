@@ -78,7 +78,7 @@ README/USAGE 里 "进哪一页" 只留一条主路径。理由：多给一个入
 [`SECURITY.md`](SECURITY.md)（三块能力面、对 token 的承诺、私密报告通道与回应预期）、
 GitHub issue 表单（bug / feature）与 PR 模板；三个文件都进发布包。
 
-用例数 87 → **90**。
+用例数 87 → **91**。
 
 > EN: 0.2.0 also hardens the public-facing story. The module header of `lib/index.js` had claimed
 > "no credentials, no network" since the orchestrate-only days, while the same file resolves credentials
