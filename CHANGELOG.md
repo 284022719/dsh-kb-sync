@@ -64,7 +64,7 @@ README/USAGE 里 "进哪一页" 只留一条主路径。理由：多给一个入
   现在改成**按三块能力分别陈述**，并写明哪一块构成静态扫描的红线、为什么消不掉。
 - `docs/CAPABILITY-DISCLOSURE.md` 两处失真：设置分节的三个动作名还写着 2026-10-15 已经删掉的
   「打开控制页」（实际是 抓取新对话 / 更新知识库 / 刷新）；"`scripts` 只有 `test`" 也不再成立。
-- README 的包体量、用例数等实测数字同步到当前值（包体量 55 → 58 个文件 / 480 KB）。
+- README 的包体量、用例数等实测数字同步到当前值（包体量 55 → **58** 个文件，约 480 KB）。
 
 **② 三条防漂移测试**（都是让上面那类问题"下次自己变红"）：
 
@@ -87,7 +87,7 @@ GitHub issue 表单（bug / feature）与 PR 模板；三个文件都进发布�
 > `test`") are fixed, and three new tests pin the class of defect: the header route list must equal the
 > real routes, the disclosure's action names must equal the client dictionary, and `package.json` must
 > declare no install hooks and no runtime dependencies. Adds CONTRIBUTING.md, SECURITY.md, GitHub issue
-> forms and a PR template (all shipped). 90 cases; package 58 files / 480 KB.
+> forms and a PR template (all shipped). 91 cases; package **58** files, ~480 KB.
 
 ## 0.1.0 — 2026-10-12
 

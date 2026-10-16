@@ -51,7 +51,7 @@ dsh-kb-sync/
 ```
 
 > 上面是**源码仓库**的样子。安装包（`package.json` 的 `files` 白名单；2026-10-16 实测
-> `npm pack --dry-run` 共 **58** 个文件 / 480 KB）里有 `lib/`、`locale/`、`docs/`、`tools/pipeline/`、
+> `npm pack --dry-run` 共 **58** 个文件 / 约 480 KB）里有 `lib/`、`locale/`、`docs/`、`tools/pipeline/`、
 > `assets/screenshots/`、`screenshots.json`、`cordis.patch.yml`、`config.example.json`、`CHANGELOG.md`、
 > `README.md`、`README.en.md`、`CONTRIBUTING.md`、`SECURITY.md`、`LICENSE`
 > —— **`test/`、`tools/publish.*`、`AGENTS.md`、`data/` 不在其中**（`config.example.json` 自 0.1.0 起随包发布；

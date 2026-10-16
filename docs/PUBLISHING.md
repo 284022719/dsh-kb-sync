@@ -31,7 +31,7 @@
 
 `package.json` 的 `files` 白名单：`lib/`、`locale/`、`docs/`、`tools/pipeline/`（含 5 条取反项）、
 `assets/screenshots/`、`screenshots.json`、`cordis.patch.yml`、`config.example.json`、`CHANGELOG.md`、
-`README.md`、`README.en.md`、`CONTRIBUTING.md`、`SECURITY.md`、`LICENSE`。2026-10-16 实测 **58 个文件 / 480 KB**。
+`README.md`、`README.en.md`、`CONTRIBUTING.md`、`SECURITY.md`、`LICENSE`。2026-10-16 实测 **58** 个文件（约 480 KB）。
 
 注意 **`tools/pipeline/` 是"作者自己的参考流水线"**：里面是通用代码（拉取、重建、检索、体检），
 不含个人数据。别人的用法是把它换成自己的管线目录（`config.pipelineDir`）。

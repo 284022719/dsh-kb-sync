@@ -110,9 +110,23 @@ function tail(text, lines = 12) {
       const bad = paths.filter((p) => forbidden.test(p))
       const needed = ['lib/index.js', 'lib/client.js', 'lib/index.d.ts', 'locale/en.json', 'cordis.patch.yml', 'README.md', 'README.en.md', 'CHANGELOG.md', 'screenshots.json']
       const missing = needed.filter((p) => !paths.includes(p))
-      record('发布包内容', bad.length === 0 && missing.length === 0, `${info.entryCount} 个文件 / ${Math.round(info.size / 1024)} KB`)
+
+      // ④b 文档里写的**包体量**必须与实际一致。
+      // 动机（2026-10-16 实测）：`files` 白名单加了 CONTRIBUTING/SECURITY 之后包变成 58 个文件，
+      // 而 README 与 PUBLISHING 还写着旧的 55 —— 数字一旦写死就会漂，所以在这里对一次。
+      // 体积写成"约 480 KB"（改一次文档就会变），所以只核对**文件数**。
+      const docCounts = ['README.md', 'docs/PUBLISHING.md'].map((file) => ({
+        file,
+        n: Number((readFileSync(join(ROOT, file), 'utf8').match(/\*\*(\d+)\*\*\s*个文件/) ?? [])[1]),
+      }))
+      const unreadable = docCounts.filter((d) => !Number.isFinite(d.n)).map((d) => d.file)
+      const drifted = docCounts.filter((d) => Number.isFinite(d.n) && d.n !== info.entryCount).map((d) => `${d.file} 写 ${d.n}`)
+
+      record('发布包内容', bad.length === 0 && missing.length === 0 && unreadable.length === 0 && drifted.length === 0, `${info.entryCount} 个文件 / ${Math.round(info.size / 1024)} KB`)
       if (bad.length > 0) console.log(`    不该发布：${bad.join(', ')}`)
       if (missing.length > 0) console.log(`    少了必需文件：${missing.join(', ')}`)
+      if (unreadable.length > 0) console.log(`    这些文档里应有 "**N** 个文件" 的写法，没解析到：${unreadable.join('、')}`)
+      if (drifted.length > 0) console.log(`    文档里的包体量与实际不符（实际 ${info.entryCount} 个）：${drifted.join('、')}`)
     }
   }
 }
